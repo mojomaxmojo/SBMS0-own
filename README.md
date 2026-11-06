@@ -114,5 +114,4 @@ sudo bash install_all.sh /dev/ttyUSB1
 ## Ziel-System
 
 Einziges Zielsystem ist **DietPi (Debian Trixie) auf Dell Wyse 3040** mit `install_all.sh` (eine Anweisung, ohne Grafana).
-`install_dietpi.sh` ist ein älterer, abgespeckter Installer (kein Live-Web/Kiosk) – Referenz, nicht für den Normalfall.
-Die ehemaligen Pi-Installer (`SBMS_Pi_install.py`, `SBMS_Pi-IOT_install.py`) und `SBMS-Logger.service` wurden entfernt, da nur DietPi/Wyse genutzt wird.
+Entfernte Alt-Dateien: `install_dietpi.sh`, `SBMS_Pi_install.py`, `SBMS_Pi-IOT_install.py`, `SBMS-Logger.service`, `sbms0-SerialToInfluxDB.py` (nur DietPi/Wyse wird genutzt; aktiver Logger ist allein `sbms0-LiveLogger.py`).

@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-06 – Alte Installer/Legacy-Logger entfernt (nur DietPi/Wyse)
+
+- Gelöscht: `install_dietpi.sh` (alter Installer, von `install_all.sh` abgelöst),
+  `sbms0-SerialToInfluxDB.py` (alter Logger, wurde nur von der bereits
+  entfernten `SBMS-Logger.service` benutzt) und die Mitkopier-Zeile in
+  `install_all.sh`.
+- Kein Betriebssystembestandteil – `install_all.sh` deckt alles ab.
+
 ## 2026-11-06 – Pi-Installer entfernt (nur DietPi/Wyse wird genutzt)
 
 - Gelöscht: `SBMS_Pi_install.py`, `SBMS_Pi-IOT_install.py`, `SBMS-Logger.service`

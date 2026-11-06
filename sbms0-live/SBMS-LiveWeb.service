@@ -1,0 +1,15 @@
+[Unit]
+Description=SBMS0 Live-Web (leichte Kiosk-Anzeige, Ersatz Grafana LIVE)
+After=network.target influxdb.service
+Wants=influxdb.service
+
+[Service]
+Type=simple
+User=dietpi
+WorkingDirectory=/home/SBMS0/sbms0-live
+ExecStart=/usr/bin/python3 /home/SBMS0/sbms0-live/app.py 8090
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SBMS0 HISTORIE</title>
+<link rel="stylesheet" href="/static/uplot.min.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div id="topbar">
+  <div class="nav-links">
+    <a href="/">START</a>
+    <a href="/live">LIVE</a>
+    <a href="/calc">BERECHNUNGEN</a>
+    <a href="/hist" class="active">HISTORIE</a>
+  </div>
+  <div class="right">
+    <span id="status">verbinde…</span>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div id="rangebar" class="panel">
+  <span class="range-label">Zeitraum:</span>
+  <div class="range-btns">
+    <button data-h="24">24 h</button>
+    <button data-h="168">7 d</button>
+    <button data-h="720" class="active">30 d</button>
+    <button data-h="2160">90 d</button>
+    <button data-h="8760">1 a</button>
+  </div>
+  <span class="range-label">oder:</span>
+  <input type="date" id="from-date">
+  <span class="range-label">bis</span>
+  <input type="date" id="to-date">
+  <button id="apply-custom">Anwenden</button>
+  <span id="range-info" class="dim"></span>
+</div>
+
+<div class="grid">
+  <div class="panel" id="batt-panel">
+    <div class="panel-title">Battery Levels (Verlauf)</div>
+    <div id="battchart"></div>
+    <div id="battlegend"></div>
+  </div>
+
+  <div class="panel" id="flow-panel">
+    <div class="panel-title">Energy flow (Verlauf)</div>
+    <div id="flowchart"></div>
+    <div id="flowlegend"></div>
+  </div>
+</div>
+
+<div class="row-title">Statistik</div>
+
+<div class="grid">
+  <div class="panel stat-card">
+    <div class="panel-title">PV-Energie (Zeitraum)</div>
+    <div class="stat"><div class="stat-value green" id="stat-pv">–<span class="unit"> kWh</span></div></div>
+  </div>
+  <div class="panel stat-card">
+    <div class="panel-title">Verbrauch (Zeitraum)</div>
+    <div class="stat"><div class="stat-value orange" id="stat-load">–<span class="unit"> kWh</span></div></div>
+  </div>
+  <div class="panel stat-card" style="grid-column: span 12">
+    <div class="panel-title">Zell-Minima (Zeitraum)</div>
+    <div id="cellmins" class="mins-grid"></div>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+  <div class="panel" id="delta-panel" style="grid-column: span 6">
+    <div class="panel-title">Cell Delta (Minimum im Zeitraum)</div>
+    <div id="deltagauge" style="height:190px"></div>
+  </div>
+  <div class="panel" style="grid-column: span 18">
+    <div class="panel-title">Hinweis</div>
+    <div class="dim" style="padding:6px 2px; line-height:1.6">
+      Zell-Minima = niedrigster je Zelle erreichter Wert im gewählten Zeitraum (Downsampling-Grenze).<br>
+      Cell Delta zeigt das <b>Minimum</b> des Zeitraums (kleinste Differenz der Zellen).<br>
+      Rohdaten-Auflösung 1 s steht in <code>raw_1s</code>, Verläufe rechnen mit 1-Min-Mittelwerten (<code>downsampled_1m</code>).
+    </div>
+  </div>
+</div>
+
+<script src="/static/uplot.iife.min.js"></script>
+<script src="/static/shared.js?v=2"></script>
+<script src="/static/hist.js?v=5"></script>
+</body>
+</html>

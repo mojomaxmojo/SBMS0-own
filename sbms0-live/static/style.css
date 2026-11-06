@@ -1,0 +1,308 @@
+/* SBMS0 Live-Web – Grafana-Look (LED-Bargauges, Stat-Werte, Gauge, uPlot) */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Scrollbar verstecken (Kiosk) – Scrollen per Touch funktioniert weiter */
+::-webkit-scrollbar { width: 0; height: 0; display: none; }
+html { scrollbar-width: none; -ms-overflow-style: none; }
+
+:root {
+  --bg: #111217;
+  --panel: #181b1f;
+  --panel-border: #2c3235;
+  --txt: #cccccc;
+  --bright: #ffffff;
+  --dim: #8e8e8e;
+  --green: #73bf69;
+  --blue: #5794f2;
+  --orange: #ff9830;
+  --red: #f2495c;
+}
+
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: "Roboto", system-ui, sans-serif;
+  font-size: 14px;
+  padding: 8px;
+  user-select: none;
+}
+
+/* --- Topbar (Grafana-Stil) --- */
+#topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px 10px;
+}
+#topbar .nav-links { display: flex; gap: 8px; }
+#topbar a {
+  color: var(--txt);
+  text-decoration: none;
+  background: #22252b;
+  padding: 7px 14px;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 500;
+}
+#topbar .right { display: flex; gap: 18px; align-items: center; color: var(--dim); }
+#status.err { color: var(--red); }
+
+.row-title {
+  color: var(--dim);
+  font-size: 13px;
+  padding: 0 4px 6px;
+}
+
+/* --- Grid / Panels --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 8px;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 2px;
+  padding: 10px 14px;
+  grid-column: span 24;
+}
+.panel-title {
+  color: var(--dim);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.override-hint { color: var(--blue); font-size: 11px; margin-left: 8px; }
+
+#soc-panel   { grid-column: span 24; }
+#cells-panel { grid-column: span 19; }
+#delta-panel { grid-column: span 5; }
+#chart-panel { grid-column: span 24; min-height: 340px; }
+
+/* Zeile 2: Leistung links 50%, Time+Flags rechts 50% */
+.panel.stat-card { grid-column: span 12; }
+
+/* Calc-Seite: Energy/Flow und Prognosen je 50% */
+#energy-panel, #flow-panel { grid-column: span 12; }
+#ttf-panel, #tte-panel { grid-column: span 12; }
+#batt-panel, #cells-verlauf-panel { grid-column: span 24; }
+
+/* Zell-Farb-Legende */
+.cell-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 8px 2px 2px;
+  font-size: 13px;
+  color: var(--dim);
+}
+.cell-legend .cl-item { display: flex; align-items: center; gap: 6px; }
+.cell-legend .cl-swatch { width: 22px; height: 12px; border-radius: 2px; display: inline-block; }
+
+/* --- LED-Bargauge (Grafana "gradient"-LED-Style) --- */
+.soc-line { display: flex; align-items: center; gap: 16px; height: 56px; flex: 1; width: 100%; }
+.soc-value { font-size: 4.4rem; font-weight: 500; color: var(--bright); white-space: nowrap; line-height: 1; }
+.soc-value .unit { color: inherit; font-size: 2.4rem; }
+#soc-panel { display: flex; align-items: center; }
+
+.ledbar {
+  flex: 1;
+  height: 42px;
+  display: flex;
+  gap: 2px;
+  background: #22252b;
+  padding: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ledbar .led { flex: 1; border-radius: 1px; opacity: 0.45; }
+.ledbar .led.on { opacity: 1; }
+
+/* --- Stat-Karten --- */
+.stats-row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: space-evenly; }
+.stat { min-width: 120px; text-align: center; }
+.stat.wide { flex: 1; min-width: 200px; text-align: left; }
+.stat-name { color: var(--dim); font-size: 13px; margin-bottom: 0; }
+.stat-value {
+  font-size: 3.9rem;
+  font-weight: 500;
+  color: var(--bright);
+  white-space: nowrap;
+  line-height: 1.05;
+}
+.stat-value.small { font-size: 1.5rem; line-height: 2.4rem; font-weight: 400; }
+.stat-value .unit { font-size: 1.3rem; color: var(--dim); font-weight: 400; }
+.green  { color: #96d98d !important; }
+.blue   { color: #8ab8ff !important; }
+.orange { color: #ffb357 !important; }
+.stat-sub { color: var(--dim); font-size: 13px; margin-top: 2px; text-align: center; }
+#flags-de.err { color: var(--red); }
+
+/* --- Zellen (LED-LCD-Style) --- */
+.cell-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+.cell-row .cname { width: 52px; color: var(--txt); font-size: 13px; }
+.cell-row .cname.wide { width: 130px; }
+.cell-row .ledbar { height: 26px; }
+.cell-row .ledbar.thin { height: 22px; }
+.cell-row .cval {
+  width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--txt);
+  font-size: 13px;
+}
+
+/* Energy-Panel: Balken groesser, Hohe an Nachbarspanel angleichen */
+#energy-panel .cell-row { margin: 14px 0; }
+#energy-panel .cname.wide { font-size: 1.05rem; width: 130px; }
+#energy-panel .ledbar { height: 44px; }
+#energy-panel .cval {
+  width: 140px;
+  font-size: 1.7rem;
+  font-weight: 500;
+  color: var(--bright);
+}
+#energy-panel .cval .unit,
+#energy-panel .cval { font-variant-numeric: tabular-nums; }
+
+/* --- Delta-Gauge (SVG) --- */
+#delta-panel { display: flex; flex-direction: column; }
+#gauge { flex: 1; display: flex; align-items: center; justify-content: center; }
+#gauge svg text {
+  fill: var(--bright);
+  font-size: 34px;
+  font-weight: 500;
+}
+#gauge svg .gunit { fill: var(--dim); font-size: 15px; }
+
+/* --- Chart --- */
+#powerchart { width: 100%; }
+#powerchart .uplot, #flowchart .uplot, #battchart .uplot, #cellschart .uplot { width: 100%; }
+/* uPlot-Achsen-Labels nicht abschneiden */
+.uplot .u-axis { overflow: visible; }
+#powerchart .u-legend, #flowchart .u-legend, #battchart .u-legend, #cellschart .u-legend {
+  font-size: 12px;
+  text-align: left;
+  margin: 6px 0 0 10px;
+  display: block;
+}
+#powerchart .u-legend tr, #flowchart .u-legend tr, #battchart .u-legend tr, #cellschart .u-legend tr {
+  display: inline-block;
+  margin-right: 18px;
+  color: var(--txt);
+}
+#powerchart .u-legend .u-value, #flowchart .u-legend .u-value,
+#battchart .u-legend .u-value, #cellschart .u-legend .u-value {
+  color: var(--bright);
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+}
+#powerchart .u-legend .u-marker, #flowchart .u-legend .u-marker,
+#battchart .u-legend .u-marker, #cellschart .u-legend .u-marker {
+  width: 10px; height: 10px; border-radius: 2px;
+}
+
+/* Legende (Grafana-Stil) */
+.legend-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.legend-table th {
+  color: var(--blue);
+  text-align: left;
+  font-weight: 400;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.legend-table th:last-child, .legend-table td:last-child { text-align: right; }
+.legend-table td {
+  color: var(--txt);
+  padding: 5px 6px;
+  border-bottom: 1px solid #22252b;
+  font-variant-numeric: tabular-nums;
+}
+.legend-table td:not(:first-child) { text-align: right; }
+.lg-dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: -2px;
+}
+.status-line {
+  color: var(--dim);
+  font-size: 1rem;
+  margin-top: 6px;
+}
+
+/* --- Prognosen (Time to full/empty) wie Grafana: Label oben, Bar voll breit --- */
+.prog { margin: 10px 0 14px; }
+.prog .pname { color: var(--txt); font-size: 14px; margin-bottom: 5px; }
+.prog .prow { display: flex; align-items: center; gap: 14px; }
+.prog .ledbar { height: 28px; flex: 1; }
+.prog .pval {
+  font-size: 1.7rem;
+  font-weight: 500;
+  min-width: 100px;
+  text-align: right;
+  color: var(--bright);
+  white-space: nowrap;
+}
+.status-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  color: var(--dim);
+  font-size: 1.1rem;
+  text-align: center;
+}
+#topbar a.active { background: #3a3f46; color: var(--bright); }
+
+/* --- HISTORIE: Zeitraum-Leiste --- */
+#rangebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+}
+.range-label { color: var(--dim); font-size: 13px; }
+.range-btns { display: flex; gap: 6px; }
+.range-btns button, #apply-custom {
+  background: #22252b;
+  color: var(--txt);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.range-btns button.active { background: #3a3f46; color: var(--bright); font-weight: 600; }
+#rangebar input[type=date] {
+  background: #22252b;
+  color: var(--txt);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  padding: 7px 8px;
+  font-size: 14px;
+  color-scheme: dark;
+}
+.dim { color: var(--dim); }
+
+/* Zell-Minima Grid */
+.mins-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px 18px;
+}
+.min-item { display: flex; flex-direction: column; }
+.min-item .ml { color: var(--dim); font-size: 12px; }
+.min-item .mv { font-size: 1.3rem; font-weight: 500; }

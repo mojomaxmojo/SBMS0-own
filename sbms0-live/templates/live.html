@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SBMS0 LIVE</title>
+<link rel="stylesheet" href="/static/uplot.min.css">
+<link rel="stylesheet" href="/static/style.css?v=16">
+</head>
+<body>
+
+<div id="topbar">
+  <div class="nav-links">
+    <a href="/" >START</a>
+    <a href="/live" class="active">LIVE</a>
+    <a href="/calc">BERECHNUNGEN</a>
+    <a href="/hist">HISTORIE</a>
+  </div>
+  <div class="right">
+    <span id="status">verbinde…</span>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div class="row-title">Live-Werte</div>
+
+<div class="grid">
+
+  <!-- SOC: volle Breite, LED-Bargauge -->
+  <div class="panel" id="soc-panel">
+    <div class="soc-line">
+      <div class="ledbar" id="soc-bar"></div>
+      <div class="soc-value"><span id="soc-num">–</span><span class="unit">%</span></div>
+    </div>
+  </div>
+
+  <!-- Zeile 2: Power-Stats + Akku/Flags -->
+  <div class="panel stat-card">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-name">PV</div>
+        <div class="stat-value green"><span id="p-pv">–</span><span class="unit"> W</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-name">Battery</div>
+        <div class="stat-value blue"><span id="p-bat">–</span><span class="unit"> W</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-name">Verbrauch</div>
+        <div class="stat-value orange"><span id="p-load">–</span><span class="unit"> W</span></div>
+      </div>
+    </div>
+    <div class="stat-sub" id="p-currents">–</div>
+  </div>
+
+  <div class="panel stat-card">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-name">Time</div>
+        <div class="stat-value small" id="clock2">–</div>
+      </div>
+      <div class="stat wide">
+        <div class="stat-name">Flags</div>
+        <div class="stat-value orange small" id="flags-de">–</div>
+      </div>
+    </div>
+    <div class="stat-sub" id="akku-line">–</div>
+  </div>
+
+  <!-- Zeile 3: Cell Voltages LCD + Cells Delta Gauge -->
+  <div class="panel" id="cells-panel">
+    <div class="panel-title">Cell Voltages (LCD-Balken)</div>
+    <div id="cells"></div>
+  </div>
+
+  <div class="panel" id="delta-panel">
+    <div class="panel-title">Cells Delta</div>
+    <div id="gauge"></div>
+  </div>
+
+  <!-- Zeile 4: Leistung (Live-Verlauf) Today -->
+  <div class="panel" id="chart-panel">
+    <div class="panel-title">Leistung (Live-Verlauf) <span class="override-hint">⏱ Today so far · 1min</span></div>
+    <div id="powerchart"></div>
+    <div id="legend"></div>
+  </div>
+
+</div>
+
+<script src="/static/uplot.iife.min.js"></script>
+<script src="/static/shared.js?v=2"></script>
+<script src="/static/live.js?v=12"></script>
+</body>
+</html>

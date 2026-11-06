@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SBMS0 BERECHNUNGEN</title>
+<link rel="stylesheet" href="/static/uplot.min.css">
+<link rel="stylesheet" href="/static/style.css?v=11">
+</head>
+<body>
+
+<div id="topbar">
+  <div class="nav-links">
+    <a href="/">START</a>
+    <a href="/live">LIVE</a>
+    <a href="/calc" class="active">BERECHNUNGEN</a>
+    <a href="/hist">HISTORIE</a>
+  </div>
+  <div class="right">
+    <span id="status">verbinde…</span>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div class="row-title">Energie heute (1-Min-Daten, exakt mathematisch)</div>
+
+<div class="grid">
+  <!-- Energy: bargauge links 50% -->
+  <div class="panel" id="energy-panel">
+    <div class="panel-title">Energy</div>
+    <div id="energy-bars"></div>
+  </div>
+
+  <!-- Energy flow: chart rechts 50% -->
+  <div class="panel" id="flow-panel">
+    <div class="panel-title">Energy flow (heute)</div>
+    <div id="flowchart"></div>
+    <div id="flowlegend"></div>
+  </div>
+</div>
+
+<div class="row-title">Prognosen (Rohdaten – eigene Zeitfenster)</div>
+
+<div class="grid">
+  <div class="panel" id="ttf-panel">
+    <div class="panel-title">Time to full</div>
+    <div id="ttf-bars"></div>
+  </div>
+  <div class="panel" id="tte-panel">
+    <div class="panel-title">Time to empty</div>
+    <div id="tte-bars"></div>
+  </div>
+</div>
+
+<div class="row-title">Tagesverlauf</div>
+
+<div class="grid">
+  <div class="panel" id="batt-panel">
+    <div class="panel-title">Battery Levels (heute)</div>
+    <div id="battchart"></div>
+    <div id="battlegend"></div>
+  </div>
+
+  <div class="panel" id="cells-verlauf-panel">
+    <div class="panel-title">Cell Voltages (Verlauf) <span class="override-hint">Skala 2,5 – 3,8 V</span></div>
+    <div id="cellschart"></div>
+    <div id="cellslegend"></div>
+  </div>
+</div>
+
+<script src="/static/uplot.iife.min.js"></script>
+<script src="/static/shared.js?v=2"></script>
+<script src="/static/calc.js?v=10"></script>
+</body>
+</html>

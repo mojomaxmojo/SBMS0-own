@@ -158,6 +158,56 @@ async function updateFlow() {
   ], ['Min', 'Mean', 'Max']);
 }
 
+/* ---------- Fehler-Ereignisse im Zeitraum (Error Active, 1-min-Gruppe) ---------- */
+let errPlot = null;
+
+function fmtDT(ts) {
+  return new Date(ts).toLocaleString('de-DE', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+async function updateErrEvents() {
+  // max() je Minute: 1 = irgendwann in dieser Minute ein echter Fehler aktiv
+  const ivl = Math.max(groupIntervalMin(), 1);
+  const q =
+    `SELECT max("Error Active") AS err, last("Monitor Flags DE") AS flags ` +
+    `FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} ` +
+    `GROUP BY time(${ivl}m) fill(null)`;
+  const s = await fetchSeries(q);
+  const box = $('err-events');
+  if (!s) { box.innerHTML = '<span class="dim">Keine Daten.</span>'; return; }
+
+  // Zusammenhängende Minuten zu Perioden zusammenfassen
+  const events = [];
+  let cur = null;
+  for (const v of s.values) {
+    const on = v[1] != null && Number(v[1]) > 0;
+    const t = new Date(v[0]).getTime();
+    if (on) {
+      if (!cur) cur = { start: t, end: t, flags: v[2] || '' };
+      else cur.end = t;
+    } else if (cur) {
+      cur.end = Math.max(cur.end, t - 1); // vor der fehlerfreien Minute enden
+      events.push(cur); cur = null;
+    }
+  }
+  if (cur) events.push(cur);
+
+  if (!events.length) {
+    box.innerHTML =
+      '<span class="ok-note">✓ Keine Fehler im gewählten Zeitraum</span>';
+    return;
+  }
+  let html = '';
+  for (const e of events.slice(-50).reverse()) { // neueste zuerst, max 50
+    html += `<div class="err-event"><span class="err-ts">⚠ ${fmtDT(e.start)} – ${fmtDT(e.end)}</span>` +
+      `<span class="err-what">${e.flags || 'Fehler aktiv'}</span></div>`;
+  }
+  const more = events.length > 50 ? `<div class="dim">(nur die neuesten 50 von ${events.length} Ereignissen)</div>` : '';
+  box.innerHTML = html + more;
+}
+
 /* ---------- Stats ---------- */
 async function updateStats() {
   // Jede Stat einzeln – ein Fehler blockiert nicht die anderen
@@ -232,7 +282,7 @@ function buildHistGauge() {
 async function loadAll() {
   $('status').textContent = 'lade…';
   try {
-    await Promise.all([updateBatt(), updateFlow(), updateStats()]);
+    await Promise.all([updateBatt(), updateFlow(), updateStats(), updateErrEvents()]);
     $('status').textContent = 'Daten OK';
     $('status').classList.remove('err');
   } catch (e) {

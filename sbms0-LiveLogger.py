@@ -17,6 +17,8 @@ Aufruf:         python3 sbms0-LiveLogger.py [/dev/ttyUSB0]
 """
 
 import datetime
+import json
+import os
 import sys
 import time
 
@@ -45,6 +47,45 @@ CSV_HEADER = ['timestamp', 'SOC', 'Battery Voltage', 'Battery Current',
               'ADC2', 'ADC3', 'ADC4',
               'Error Code', 'Error Binary',
               'Flags', 'Flags DE']
+
+# ---------------------------------------------------------------- Alarm-Konfig
+# Deutsche Flag-Texte + Fehler-Definitionen aus der editierbaren alarm.json
+# (liegt im Repo-Ordner neben diesem Skript). Kann manuell angepasst werden.
+_ALARM_FALLBACK = {
+    'banner_titel': 'BATTERIE-FEHLER',
+    'error_flags': ['UVLK', 'OVLK', 'COC', 'DOC', 'DSC', 'OPEN', 'CELF', 'LVC'],
+    'flags': {
+        'DFET': 'DFET (Entladen EIN)', 'EOC': 'EOC (Ladeende)',
+        'CFET': 'CFET (Laden EIN)', 'ECCF': 'ECCF (Zellen-Balance)',
+        'LVC': 'FEHLER: Zelle zu tief', 'OPEN': 'FEHLER: Zellkabel',
+        'CELF': 'FEHLER: Zellfehler', 'DSC': 'FEHLER: Kurzschluss',
+        'DOC': 'FEHLER: Ueberstrom Entladen', 'COC': 'FEHLER: Ueberstrom Laden',
+        'IOT': 'IOT (Temperatur)', 'UVLK': 'FEHLER: FET-Kurzschluss',
+        'UV': 'UV (Unterspannung)', 'OVLK': 'FEHLER: FET-Kurzschluss',
+        'OV': 'OV (Ueberspannung)',
+    },
+}
+_ALARM_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm.json')
+
+def load_alarm_config():
+    cfg = dict(_ALARM_FALLBACK)
+    cfg['flags'] = dict(_ALARM_FALLBACK['flags'])
+    cfg['error_flags'] = list(_ALARM_FALLBACK['error_flags'])
+    try:
+        with open(_ALARM_PATH, 'r', encoding='utf-8') as fh:
+            user = json.load(fh)
+        if isinstance(user.get('flags'), dict) and user['flags']:
+            cfg['flags'] = user['flags']
+        if isinstance(user.get('error_flags'), list) and user['error_flags']:
+            cfg['error_flags'] = user['error_flags']
+        if isinstance(user.get('banner_titel'), str) and user['banner_titel']:
+            cfg['banner_titel'] = user['banner_titel']
+    except (OSError, ValueError) as e:
+        print(f'[ALARM] alarm.json nicht lesbar ({e}) - nutze eingebaute Defaults.',
+              flush=True)
+    return cfg
+
+ALARM = load_alarm_config()
 
 # ---------------------------------------------------------------- Dekompression
 def dcmp(p, s, d):
@@ -103,21 +144,15 @@ def parse_line(line):
     flags = ', '.join(name for bit, name in flag_defs if ERR & bit)
 
     # Fehler-Indikator: 1 wenn ein echtes Fehler-Flag aktiv ist, sonst 0
-    error_flags = ('UVLK', 'OVLK', 'COC', 'DOC', 'DSC', 'OPEN', 'CELF', 'LVC')
-    error_active = 1 if any(bit_name for bit, bit_name in flag_defs if ERR & bit and bit_name in error_flags) else 0
+    # (Definiton kommt aus alarm.json, siehe 'error_flags')
+    error_active = 1 if any(
+        name in ALARM['error_flags'] for bit, name in flag_defs if ERR & bit
+    ) else 0
 
-    # Deutsche Flag-Texte fuer Grafana (siehe SBMS0-Dokumentation)
-    flag_de = {
-        'DFET': 'DFET (Entladen EIN)', 'EOC': 'EOC (Ladeende)',
-        'CFET': 'CFET (Laden EIN)', 'ECCF': 'ECCF (Zellen-Balance)',
-        'LVC': 'FEHLER: Zelle zu tief', 'OPEN': 'FEHLER: Zellkabel',
-        'CELF': 'FEHLER: Zellfehler', 'DSC': 'FEHLER: Kurzschluss',
-        'DOC': 'FEHLER: Ueberstrom Entladen', 'COC': 'FEHLER: Ueberstrom Laden',
-        'IOT': 'IOT (Temperatur)', 'UVLK': 'FEHLER: FET-Kurzschluss',
-        'UV': 'UV (Unterspannung)', 'OVLK': 'FEHLER: FET-Kurzschluss',
-        'OV': 'OV (Ueberspannung)',
-    }
-    flags_de = ', '.join(flag_de.get(name, name) for name in flags.split(', ') if name)
+    # Deutsche Flag-Texte aus alarm.json (manuell editierbar)
+    flags_de = ', '.join(
+        ALARM['flags'].get(name, name) for name in flags.split(', ') if name
+    )
 
     return {
         'SOC': SOC,

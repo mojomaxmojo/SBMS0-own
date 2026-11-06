@@ -26,6 +26,13 @@
 
 <div class="grid">
 
+  <!-- Fehler-Banner: nur sichtbar, wenn ein echter Fehler aktiv ist -->
+  <div id="alarm-banner" class="alarm-banner" style="display:none">
+    <span class="alarm-title" id="alarm-title">BATTERIE-FEHLER</span>
+    <span id="alarm-text"></span>
+  </div>
+
+
   <!-- SOC: volle Breite, LED-Bargauge -->
   <div class="panel" id="soc-panel">
     <div class="soc-line">
@@ -65,6 +72,7 @@
       </div>
     </div>
     <div class="stat-sub" id="akku-line">–</div>
+    <div class="stat-sub" id="err-24h" style="margin-top:2px">–</div>
   </div>
 
   <!-- Zeile 3: Cell Voltages LCD + Cells Delta Gauge -->
@@ -89,6 +97,6 @@
 
 <script src="/static/uplot.iife.min.js"></script>
 <script src="/static/shared.js?v=2"></script>
-<script src="/static/live.js?v=12"></script>
+<script src="/static/live.js?v=13"></script>
 </body>
 </html>

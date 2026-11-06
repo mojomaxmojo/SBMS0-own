@@ -22,6 +22,35 @@ from flask import Flask, jsonify, request, send_from_directory
 INFLUX_URL = os.environ.get('SBMS_INFLUX_URL', 'http://localhost:8086/query')
 INFLUX_DB = os.environ.get('SBMS_INFLUX_DB', 'SBMS')
 
+# alarm.json liegt im Repo-Ordner (eine Ebene ueber sbms0-live/) und kann
+# manuell editiert werden -> /alarm liefert sie an die Web-App aus.
+ALARM_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'alarm.json')
+
+_ALARM_FALLBACK = {
+    'banner_titel': 'BATTERIE-FEHLER',
+    'error_flags': ['UVLK', 'OVLK', 'COC', 'DOC', 'DSC', 'OPEN', 'CELF', 'LVC'],
+    'flags': {
+        'DFET': 'DFET (Entladen EIN)', 'EOC': 'EOC (Ladeende)',
+        'CFET': 'CFET (Laden EIN)', 'ECCF': 'ECCF (Zellen-Balance)',
+        'LVC': 'FEHLER: Zelle zu tief', 'OPEN': 'FEHLER: Zellkabel',
+        'CELF': 'FEHLER: Zellfehler', 'DSC': 'FEHLER: Kurzschluss',
+        'DOC': 'FEHLER: Ueberstrom Entladen', 'COC': 'FEHLER: Ueberstrom Laden',
+        'IOT': 'IOT (Temperatur)', 'UVLK': 'FEHLER: FET-Kurzschluss',
+        'UV': 'UV (Unterspannung)', 'OVLK': 'FEHLER: FET-Kurzschluss',
+        'OV': 'OV (Ueberspannung)',
+    },
+}
+
+
+def load_alarm_config():
+    try:
+        import json
+        with open(ALARM_PATH, 'r', encoding='utf-8') as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return _ALARM_FALLBACK
+
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 
@@ -43,6 +72,12 @@ def calc():
 @app.route('/hist')
 def hist():
     return send_from_directory('templates', 'hist.html')
+
+
+@app.route('/alarm')
+def alarm():
+    """Editierbare Alarm-/Flag-Konfiguration (alarm.json) fuer die Web-App."""
+    return jsonify(load_alarm_config())
 
 
 @app.route('/query')

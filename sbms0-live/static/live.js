@@ -147,6 +147,15 @@ updateChart();
 setInterval(updateChart, 60000);
 window.addEventListener('resize', () => uplotChart && uplotChart.setSize({ width: $('powerchart').clientWidth, height: 300 }));
 
+/* ---------- Alarm-Konfig (alarm.json via /alarm) ---------- */
+let ALARM = { banner_titel: 'BATTERIE-FEHLER', error_flags: [] };
+fetch('/alarm').then((r) => r.ok ? r.json() : null).then((a) => { if (a) ALARM = a; }).catch(() => {});
+
+// Fehler in den letzten 24 h: Summe von Error Active = Anzahl der Fehler-Sekunden
+const Q_ERR24 =
+  "SELECT sum(\"Error Active\") AS n " +
+  "FROM \"raw_1s\".\"SBMS_Metrics\" WHERE \"Name\" = 'SBMS0a' AND time > now() - 24h";
+
 /* ---------- 1s-Tick: Live-Werte ---------- */
 function update(row, cells) {
   if (!row) {
@@ -200,9 +209,37 @@ function update(row, cells) {
   // Flags
   const flags = String(row.flags || '') || '(keine)';
   const activeErr = Number(row.erractive) > 0;
+
+  // A: Fehler-Banner (blinkend, volle Breite) solange ein Fehler aktiv ist
+  const banner = $('alarm-banner');
+  if (activeErr) {
+    banner.style.display = '';
+    $('alarm-title').textContent = ALARM.banner_titel || 'BATTERIE-FEHLER';
+    $('alarm-text').textContent = flags;
+  } else {
+    banner.style.display = 'none';
+  }
+
   $('flags-de').textContent = activeErr
     ? `⚠ FEHLER ${row.errcode}: ${flags}` : flags;
   $('flags-de').classList.toggle('err', activeErr);
+}
+
+// 24-h-Fehler-Zaehler: nur alle 60 s abfragen (braucht keine 1-s-Frische)
+async function updateErr24() {
+  try {
+    const row = await fetchRow(Q_ERR24);
+    const n = row && row.n != null ? Math.round(Number(row.n)) : null;
+    const el = $('err-24h');
+    if (n == null) { el.textContent = 'Fehler letzte 24 h: –'; return; }
+    if (n <= 0) {
+      el.textContent = 'Fehler letzte 24 h: keine';
+      el.classList.remove('err');
+    } else {
+      el.textContent = `Fehler letzte 24 h: ⚠ ${n} s Fehleraktivität (${(n / 3600).toFixed(1)} h)`;
+      el.classList.add('err');
+    }
+  } catch (e) { /* still bleiben - nächste Runde */ }
 }
 
 async function tick() {
@@ -216,4 +253,6 @@ async function tick() {
 }
 
 tick();
+updateErr24();
+setInterval(updateErr24, 60000);
 setInterval(tick, 1000);

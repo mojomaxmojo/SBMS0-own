@@ -306,3 +306,34 @@ body {
 .min-item { display: flex; flex-direction: column; }
 .min-item .ml { color: var(--dim); font-size: 12px; }
 .min-item .mv { font-size: 1.3rem; font-weight: 500; }
+
+/* --- Fehler-Banner (LIVE) --- */
+.alarm-banner {
+  grid-column: span 24;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 6px;
+  background: var(--red);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  animation: alarm-blink 1s steps(1) infinite;
+}
+.alarm-banner .alarm-title { font-weight: 800; letter-spacing: 1px; }
+@keyframes alarm-blink {
+  0%, 50% { background: var(--red); }
+  50.1%, 100% { background: #7a2b34; }
+}
+
+/* 24-h-Fehlerzeile in der Flags-Karte */
+#err-24h { color: var(--green); }
+#err-24h.err { color: var(--red); font-weight: 600; }
+
+/* --- Fehler-Ereignisse (HISTORIE) --- */
+.err-events { display: flex; flex-direction: column; gap: 6px; padding: 6px 2px; max-height: 260px; overflow-y: auto; }
+.err-event { display: flex; flex-direction: column; padding: 6px 8px; border-left: 3px solid var(--red); background: rgba(242,73,92,0.08); border-radius: 3px; }
+.err-event .err-ts { color: var(--red); font-weight: 600; }
+.err-event .err-what { color: var(--txt); font-size: 0.95em; }
+.ok-note { color: var(--green); font-weight: 600; padding: 6px 2px; }

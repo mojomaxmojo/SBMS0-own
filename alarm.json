@@ -1,0 +1,36 @@
+{
+  "_hinweis": [
+    "Alarm-/Flag-Definitionen fuer SBMS0-LiveLogger und Live-Web.",
+    "Diese Datei kann MANUELL bearbeitet werden - der Logger liest sie",
+    "bei jedem Start neu (Fehler: Logger faellt auf eingebaute Defaults zurueck).",
+    "",
+    "flags:        Kuerzel -> deutscher Anzeigetext (wird in InfluxDB 'Flags DE' geloggt)",
+    "error_flags:  Diese Kuerzel gelten als ECHTER FEHLER (rotes Banner in LIVE,",
+    "              Zaehler in HISTORIE). Alle anderen Flags sind nur Hinweise.",
+    "banner_titel: Text des roten Live-Banners (Platzhalter {text} = Flags)."
+  ],
+
+  "banner_titel": "BATTERIE-FEHLER",
+
+  "error_flags": [
+    "UVLK", "OVLK", "COC", "DOC", "DSC", "OPEN", "CELF", "LVC"
+  ],
+
+  "flags": {
+    "DFET": "DFET (Entladen EIN)",
+    "EOC": "EOC (Ladeende)",
+    "CFET": "CFET (Laden EIN)",
+    "ECCF": "ECCF (Zellen-Balance)",
+    "LVC": "FEHLER: Zelle zu tief",
+    "OPEN": "FEHLER: Zellkabel",
+    "CELF": "FEHLER: Zellfehler",
+    "DSC": "FEHLER: Kurzschluss",
+    "DOC": "FEHLER: Ueberstrom Entladen",
+    "COC": "FEHLER: Ueberstrom Laden",
+    "IOT": "IOT (Temperatur)",
+    "UVLK": "FEHLER: FET-Kurzschluss",
+    "UV": "UV (Unterspannung)",
+    "OVLK": "FEHLER: FET-Kurzschluss",
+    "OV": "OV (Ueberspannung)"
+  }
+}

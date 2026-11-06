@@ -61,7 +61,6 @@ sudo bash install_all.sh /dev/ttyUSB1
 |---|---|
 | `SBMS-LiveWeb.service` | Live-Web-App (Flask, Port 8090) – User `dietpi` |
 | `SBMS-LiveLogger.service` | 1-Hz-Logger → InfluxDB (+ 1-Min-Downsampling) – User `dietpi`, Gruppe `dialout` |
-| `SBMS-Logger.service` | Legacy-Logger `sbms0-SerialToInfluxDB.py` (nur Pi-Installer, User `pi`) |
 
 ## Logger-Verhalten (`sbms0-LiveLogger.py`)
 
@@ -103,11 +102,6 @@ sudo bash install_all.sh /dev/ttyUSB1
 - Bei RAM-/Load-Anstieg über Tage: nächtlichen Reboot-Cron einplanen (z. B. `0 4 * * * /sbin/reboot`).
 - Optional (noch nicht umgesetzt): Logger schreibt nur bei neuen Serial-Daten; Terminal-Render throtteln; `raw_1s`-Retention 365d → 60d.
 
-## Pi-Installer (Fallback für Raspberry Pi)
-
-- `SBMS_Pi_install.py` – klassische Installation (Debian Bookworm+, `sbms0-SerialToInfluxDB.py`) – installiert kein Grafana; falls vorhanden, wird es deinstalliert
-- `SBMS_Pi-IOT_install.py` – LITE-Variante (ohne Grafana)
-
 ## Bedienung am Touchscreen
 
 - **START** (Steuerzentrale): große Kacheln für LIVE / BERECHNUNGEN / HISTORIE – direkter Einstieg per Finger.
@@ -119,5 +113,6 @@ sudo bash install_all.sh /dev/ttyUSB1
 
 ## Ziel-System
 
-Primäres Zielsystem ist **DietPi (Debian Trixie) auf Dell Wyse 3040** mit `install_all.sh` (eine Anweisung, ohne Grafana).
-`install_dietpi.sh` und die Pi-Installer bleiben als Referenz/Fallback im Repo – alle installieren kein Grafana mehr (bzw. deinstallieren Reste alter Läufe).
+Einziges Zielsystem ist **DietPi (Debian Trixie) auf Dell Wyse 3040** mit `install_all.sh` (eine Anweisung, ohne Grafana).
+`install_dietpi.sh` ist ein älterer, abgespeckter Installer (kein Live-Web/Kiosk) – Referenz, nicht für den Normalfall.
+Die ehemaligen Pi-Installer (`SBMS_Pi_install.py`, `SBMS_Pi-IOT_install.py`) und `SBMS-Logger.service` wurden entfernt, da nur DietPi/Wyse genutzt wird.

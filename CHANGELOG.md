@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-06 – Pi-Installer entfernt (nur DietPi/Wyse wird genutzt)
+
+- Gelöscht: `SBMS_Pi_install.py`, `SBMS_Pi-IOT_install.py`, `SBMS-Logger.service`
+  (Legacy-Logger-Unit für User `pi`) – Zielsystem ist ausschließlich
+  DietPi auf Dell Wyse 3040 via `install_all.sh`.
+- `sbms0-SerialToInfluxDB.py` bleibt nur noch als Kompatibilitäts-/Referenzdatei
+  (wird von `install_all.sh` ggf. nach /home/SBMS0 kopiert).
+
 ## 2026-11-06 – Grafana komplett aus allen Installern entfernt
 
 - `install_dietpi.sh`: Grafana-Repo-Anlage, `apt install grafana`,

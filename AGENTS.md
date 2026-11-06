@@ -93,7 +93,8 @@ SBMS0 (USB/Serial, 921600 baud)
 | `sbms0-live/` | Die Web-App (app.py, static/, templates/, Unit) |
 | `sbms0-LiveLogger.py` | Der 1-Hz-Logger |
 | `.gitignore` | uPlot-Dateien, `sbms_fallback_*.csv` (Messdaten), Python-Artefakte |
-| `install_dietpi.sh` | Älterer Installer – installiert kein Grafana mehr; entfernt es, falls von früheren Läufen vorhanden |
+| `install_dietpi.sh` | Älterer Installer – kein Live-Web/Kiosk; installiert kein Grafana, entfernt es ggf. |
+| `sbms0-SerialToInfluxDB.py` | Legacy-Logger (nur Referenz/Kompatibilität, wird von `install_all.sh` mitkopiert) |
 | `README.md` | Betriebs-Doku (Installation, Kiosk-Details, Performance) |
 | `CHANGELOG.md` | Wichtige Änderungen + Learnings, neueste zuerst |
 

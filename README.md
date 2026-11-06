@@ -12,7 +12,37 @@ Automation & Monitoring für Electrodacus SBMS0 Komponenten.
 | Visualisierung | **SBMS0 Live-Web** (Port 8090) – ohne Grafana |
 | Kiosk | Chromium im Kiosk-Modus auf Touchscreen (DietPi-Autostart) |
 
-## 🚀 Installation (DietPi auf Dell Wyse 3040) – EIN BefehL
+## 📀 Schritt 0: DietPi auf die Dell Wyse 3040 flashen (falls noch nicht vorhanden)
+
+Die Wyse 3040 ist ein **x86_64**-Thin-Client (Intel Atom x5) – es wird das
+**DietPi-x86_64-Image** genutzt (nicht das ARM/Raspberry-Image!).
+
+1. **Image laden:** Aktuelles `DietPi_x86_64-Bookworm`-Image von
+   <https://dietpi.com> (Downloads → PC & NAS → x86_64) herunterladen.
+2. **USB-Stick flashen:** Image mit **balenaEtcher** oder **Rufus** (DD-Modus!)
+   auf einen USB-Stick schreiben (≥ 2 GB, wird komplett gelöscht).
+3. **BIOS vorbereiten:** Stick an die Wyse, einschalten, beim **Dell-Logo `F2`**
+   drücken → BIOS-Setup:
+   - Boot Sequence / Boot List: **USB** an erste Stelle (oder `F12` = Boot-Menü
+     und USB einmalig wählen)
+   - Optional prüfen: Secure Boot aus, UEFI aktiv
+4. **Installieren lassen:** Von USB booten – DietPi startet den **Auto-Installer**,
+   der das System automatisch auf die interne eMMC/den internen Speicher kopiert
+   (Warnung erscheint, Ziel = interne Platte). Danach herunterfahren, Stick ab,
+   neu starten → DietPi läuft von der Wyse selbst.
+5. **Erstkonfiguration:**
+   - Login: `dietpi` / Passwort: `dietpi` (wird beim ersten Login geändert)
+   - `dietpi-update` ausführen (Grundsystem aktuell bringen)
+   - `dietpi-config` → Netzwerk: **feste IP** vergeben (der Touchscreen-Rechner
+     soll immer unter derselben Adresse erreichbar sein)
+   - SSH ist standardmäßig aktiv → den Rest macht man bequem vom Arbeitsplatz aus
+6. **Weiter mit der Stack-Installation** (nächster Abschnitt, EIN Befehl).
+
+> Tipp: Im BIOS „AC Power Recovery → On" setzen, dann startet die Wyse nach
+> Stromausfall/Netzstecker-Ziehen von selbst wieder hoch (DietPi startet die
+> Dienste via systemd automatisch).
+
+## 🚀 Installation (DietPi auf Dell Wyse 3040) – EIN Befehl
 
 ```bash
 git clone https://github.com/mojomaxmojo/SBMS0-own.git /home/SBMS0

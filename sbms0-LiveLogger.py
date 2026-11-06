@@ -34,6 +34,18 @@ INFLUX_MEASUREMENT = 'SBMS_Metrics'
 INFLUX_TAG_NAME = 'SBMS0a'              # gleicher Tag wie im bestehenden Dashboard
 CSV_FALLBACK = True                     # bei InfluxDB-Fehlern zusätzlich in CSV schreiben
 
+# Kopfzeile des CSV-Fallbacks – Reihenfolge MUSS zu row in main() passen (Zeile ~380)
+CSV_HEADER = ['timestamp', 'SOC', 'Battery Voltage', 'Battery Current',
+              'Cell 1', 'Cell 2', 'Cell 3', 'Cell 4',
+              'Cell 5', 'Cell 6', 'Cell 7', 'Cell 8',
+              'Cell Delta',
+              'PV Total', 'PV1', 'PV2',
+              'External Load', 'Internal Temp', 'External Temp',
+              'Heat 1', 'Heat 2',
+              'ADC2', 'ADC3', 'ADC4',
+              'Error Code', 'Error Binary',
+              'Flags', 'Flags DE']
+
 # ---------------------------------------------------------------- Dekompression
 def dcmp(p, s, d):
     """Dekomprimiert einen Wert aus dem SBMS0-Datenstring (wie im Original)."""
@@ -250,6 +262,10 @@ def main():
         import os
         csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 f'sbms_fallback_{datetime.date.today().isoformat()}.csv')
+        # neu oder leer -> beim ersten Fehler-Schreibvorgang einmalig Kopfzeile setzen.
+        # Absichtlich NICHT sofort: so bleiben ungenutzte Fallback-Dateien 0 Byte
+        # (= "kein Datenverlust"), und nur Dateien mit echten Messwerten sind > 0.
+        csv_neu = (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0
         csv_file = open(csv_path, 'a', newline='')
         csv_writer = csv.writer(csv_file)
 
@@ -360,6 +376,9 @@ def main():
                     status = 'FEHLER beim Schreiben in InfluxDB: ' + str(e)[:40]
                     # CSV-Fallback, damit keine Datenluecke entsteht
                     if csv_writer:
+                        if csv_neu:
+                            csv_writer.writerow(CSV_HEADER)
+                            csv_neu = False
                         row = [ts.isoformat(timespec='seconds'), data['SOC'],
                                data['Battery Voltage'], data['Battery Current']]
                         row += data['Cells']

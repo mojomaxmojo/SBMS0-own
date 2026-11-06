@@ -27,6 +27,33 @@ Vollständige Commit-Historie: `git log --oneline`.
 0 Commits „behind", also nichts zu mergen. Die Zahl selbst lässt sich nicht
 „entfernen", ohne die Historie zu zerstören – siehe AGENTS.md.
 
+## 2026-11-06 – Historie auf einen Root-Commit zusammengefasst + .gitignore
+
+**Kontext:** Um die GitHub-Contributor-Liste zu bereinigen (vorher:
+`shakespeare-diy`, `Burtond`, `LeoAlioth`), wurde die 189-Commit-Historie
+durch **einen** Root-Commit (`9d5baf9`) ersetzt und per force-push
+(`981b0cd...9d5baf9`) hochgeladen. Der Inhalt ist **byte-identisch**
+(`git diff --stat` alt→neu leer). Die alte Historie liegt als
+`SBMS0-historie.bundle` lokal und vollständig im Repo `mojomaxmojo/SBMS0-test`.
+
+**Wichtig für andere Klone (DietPi `/home/SBMS0`):**
+```bash
+git remote set-url origin https://github.com/mojomaxmojo/SBMS0-own.git
+git fetch origin && git reset --hard origin/master
+```
+Ohne Reset scheitert der nächste `git pull` (divergente Historien).
+
+**Neu:**
+
+1. **`.gitignore`** – `sbms0-live/static/uplot.*` (von `install_liveweb.py`
+   geladen), `sbms_fallback_*.csv` (Messdaten), `__pycache__/`, `*.pyc`, `.venv/`.
+2. **CSV-Fallback mit Kopfzeile** (`sbms0-LiveLogger.py`):
+   - neue Konstante `CSV_HEADER` (28 Spalten, Reihenfolge = `row` in `main()`).
+   - Kopfzeile wird **beim ersten Fehler-Schreibvorgang** einmalig gesetzt
+     (nicht beim Start) → ungenutzte Fallback-Dateien bleiben 0 Byte, damit
+     `ls -l sbms_fallback_*.csv | awk '$5>0'` weiterhin zuverlässig echte
+     Datenlücken zeigt.
+
 ## 2026-11-06 – Logger: ehrliche Schreib-Logik (`sbms0-LiveLogger.py`)
 
 **Kommentar:** db43502..aa15e83 („Logger-Optimierung")

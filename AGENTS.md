@@ -21,18 +21,32 @@ Test-Repo wurden sie entfernt.
 | Repo | Zweck |
 |---|---|
 | `mojomaxmojo/SBMS0-own` | **Aktives Projekt**: Live-Web, Logger, Installer (dieses Repo) |
-| `mojomaxmojo/SBMS0-test` | Veralteter Vorläufer des aktiven Repos (nicht mehr nutzen) |
+| `mojomaxmojo/SBMS0-test` | **Nur Historie** (189 Commits bis 2026-11-06). Nicht mehr klonen/pullen! |
 | `mojomaxmojo/SBMS0` | **Archiv/Referenz**: enthält die alten Grafana-Dashboards + `setup_alert.sh` |
-| `LeoAlioth/SBMS0` | Ursprüngliches Upstream-Projekt (letzter Commit 03/2023) – nur Historie, kein aktiver Remote mehr |
+| `LeoAlioth/SBMS0` | Ursprüngliches Upstream-Projekt (letzter Commit 03/2023) – kein Remote mehr |
 
 Origin des aktiven Repos: `https://github.com/mojomaxmojo/SBMS0-own.git`
 (git push kann gelegentlich HTTP 429 liefern → kurz warten, erneut pushen).
 
-Dieses Repo ist **kein GitHub-Fork** von `LeoAlioth/SBMS0`, sondern eine
-eigenständige Weiterentwicklung, die dessen Historie als Basis enthält
-(152 eigene Commits auf 35 Upstream-Commits). Deshalb meldet GitHub in
-Vergleichsansichten „152 commits ahead of LeoAlioth:master" – das ist korrekt
-und kein Fehler. Es gibt nichts zu mergen (0 Commits behind).
+### Historie: seit 2026-11-06 EIN Root-Commit
+
+Das aktive Repo hat **genau einen Commit** (`9d5baf9`, „SBMS0 Monitoring-Stack:
+Live-Web, Logger, Installer"). Die vorherige 189-Commit-Historie (154 ×
+`shakespeare.diy`, 31 × `Burtond`, 4 × `Anže Košir`) wurde per force-push
+zusammengefasst, um die GitHub-Contributor-Liste zu bereinigen. Der Inhalt ist
+**byte-identisch** (`git diff --stat` alt→neu war leer).
+
+- Alte Historie: `SBMS0-historie.bundle` (lokal beim User) **und** vollständig im
+  Repo `mojomaxmojo/SBMS0-test`.
+- Alte Commit-Hashes (z. B. in älteren CHANGELOG-Einträgen) sind in diesem Repo
+  **nicht mehr auflösbar** – nicht als Fehler interpretieren.
+- **Andere Klone (DietPi `/home/SBMS0`) müssen einmalig**:
+  ```bash
+  git remote set-url origin https://github.com/mojomaxmojo/SBMS0-own.git
+  git fetch origin && git reset --hard origin/master
+  ```
+  Ohne das pullt die Kiste weiter aus `SBMS0-test` (genau so passiert am
+  2026-11-06) und/oder scheitert an divergenter Historie.
 
 **Einziger Remote ist `origin`.** Der frühere Remote `upstream`
 (`https://github.com/LeoAlioth/SBMS0.git`) wurde am 2026-11-06 **entfernt**,
@@ -78,6 +92,7 @@ SBMS0 (USB/Serial, 921600 baud)
 | `install_liveweb.py` | Installiert/aktualisiert nur Live-Web (+ uPlot-Download) |
 | `sbms0-live/` | Die Web-App (app.py, static/, templates/, Unit) |
 | `sbms0-LiveLogger.py` | Der 1-Hz-Logger |
+| `.gitignore` | uPlot-Dateien, `sbms_fallback_*.csv` (Messdaten), Python-Artefakte |
 | `install_dietpi.sh` | ALTER Installer inkl. Grafana – nur Referenz, nicht mehr nutzen |
 | `README.md` | Betriebs-Doku (Installation, Kiosk-Details, Performance) |
 | `CHANGELOG.md` | Wichtige Änderungen + Learnings, neueste zuerst |

@@ -72,7 +72,13 @@ sudo bash install_all.sh /dev/ttyUSB1
 - **Zeitstempel = Empfangszeit** der Serial-Zeile (`data_ts`), nicht die Schreibzeit → die 1-Minuten-Mittelwerte (`downsampled_1m`) sind präziser.
 - `build_json_body()` wird pro Schreibvorgang nur 1× aufgebaut (vorher 2×) – weniger CPU/Allokation.
 - Terminal-Anzeige (SSH) bleibt im 1-s-Takt.
-- CSV-Fallback bei InfluxDB-Fehlern unverändert; Plausibilitätsprüfungen (Gesamtspannung, SOC, Zellwerte) verwerfen kaputte Zeilen komplett.
+- **CSV-Fallback** bei InfluxDB-Fehlern: pro Logger-Start entsteht `sbms_fallback_<Datum>.csv`
+  im Projektordner; geschrieben wird **nur** bei fehlgeschlagenem Influx-Schreibvorgang.
+  - Beim ersten echten Fehler wird einmalig eine Kopfzeile (28 Spalten) gesetzt →
+    die Datei ist ohne Code-Kenntnis lesbar/importierbar.
+  - Ungenutzte Dateien bleiben **0 Byte**. Prüfung auf echte Datenlücken:
+    `ls -l sbms_fallback_*.csv | awk '$5>0'` (Ausgabe = Daten, die nicht in InfluxDB landeten).
+- Plausibilitätsprüfungen (Gesamtspannung, SOC, Zellwerte) verwerfen kaputte Zeilen komplett.
 
 ## Wichtige Berechnungs-Formeln (BERECHNUNGEN)
 

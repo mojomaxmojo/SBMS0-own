@@ -105,7 +105,7 @@ sudo bash install_all.sh /dev/ttyUSB1
 
 ## Pi-Installer (Fallback für Raspberry Pi)
 
-- `SBMS_Pi_install.py` – klassische Installation (Debian Bookworm+, `sbms0-SerialToInfluxDB.py` + Grafana)
+- `SBMS_Pi_install.py` – klassische Installation (Debian Bookworm+, `sbms0-SerialToInfluxDB.py`) – installiert kein Grafana; falls vorhanden, wird es deinstalliert
 - `SBMS_Pi-IOT_install.py` – LITE-Variante (ohne Grafana)
 
 ## Bedienung am Touchscreen
@@ -120,4 +120,4 @@ sudo bash install_all.sh /dev/ttyUSB1
 ## Ziel-System
 
 Primäres Zielsystem ist **DietPi (Debian Trixie) auf Dell Wyse 3040** mit `install_all.sh` (eine Anweisung, ohne Grafana).
-`install_dietpi.sh` (alter Installer inkl. Grafana) und die Pi-Installer bleiben als Referenz/Fallback im Repo.
+`install_dietpi.sh` und die Pi-Installer bleiben als Referenz/Fallback im Repo – alle installieren kein Grafana mehr (bzw. deinstallieren Reste alter Läufe).

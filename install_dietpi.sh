@@ -3,8 +3,12 @@
 # SBMS0-Stack Installer für DietPi (Debian Trixie) auf Dell Wyse 3040
 #
 # Struktur:
-#   TEIL 1: ALLE Pakete via apt (Abhängigkeiten inklusive)
-#   TEIL 2: Dienste anlegen (Datenbank, Logger-Unit, Grafana-Config)
+#   TEIL 1: ALLE Pakete via apt (Abhängigkeiten inklusive, KEIN Grafana)
+#   TEIL 2: Dienste anlegen (Datenbank, Logger-Unit)
+#
+# Grafana wird NICHT installiert - die Visualisierung läuft über SBMS-LiveWeb.
+# Falls Grafana von einem früheren Stand noch installiert ist, wird es
+# entfernt (siehe Abschnitt unten).
 #
 # Idempotent: kann mehrfach ausgeführt werden.
 # Updates später:  sudo apt update && sudo apt upgrade
@@ -29,7 +33,7 @@ fi
 # TEIL 1 - ALLE PAKETE VIA APT
 # ------------------------------------------------------------------------------
 
-# --- Repositories: DietPi bringt InfluxDB- UND Grafana-Repo bereits mit -------
+# --- Repositories: DietPi bringt das InfluxDB-Repo bereits mit ---------------
 echo ">>> [1/6] Prüfe Repositories (DietPi-Repo behalten, Duplikate entfernen) ..."
 for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
   [ -f "$f" ] || continue
@@ -43,15 +47,13 @@ for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
       rm -f "$f"
     fi
   fi
-  # Grafana-Repo:
+done
+# Grafana-Repo entfernen (falls von einem früheren Skript-Lauf vorhanden):
+for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+  [ -f "$f" ] || continue
   if grep -q "apt.grafana.com" "$f" 2>/dev/null; then
-    if grep -q "dietpi-grafana" "$f" 2>/dev/null; then
-      echo "    DietPi-Grafana-Repo gefunden: $f - ok"
-      DIETPI_GRAFANA=1
-    else
-      echo "    Entferne doppeltes Grafana-Repo: $f"
-      rm -f "$f"
-    fi
+    echo "    Entferne Grafana-Repo: $f"
+    rm -f "$f"
   fi
 done
 # Verwaiste Keys alter Skript-Läufe entfernen:
@@ -65,28 +67,21 @@ if [ -z "$DIETPI_INFLUX" ] && ! grep -rqs "repos.influxdata.com" /etc/apt/source
   echo "deb [signed-by=/etc/apt/keyrings/influxdata.gpg] https://repos.influxdata.com/debian bookworm stable" \
     > /etc/apt/sources.list.d/influxdb.list
 fi
-if [ -z "$DIETPI_GRAFANA" ] && ! grep -rqs "apt.grafana.com" /etc/apt/sources.list 2>/dev/null; then
-  echo "    Lege Grafana-Repo an ..."
-  curl -fsSL https://apt.grafana.com/gpg.key \
-    | gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
-    > /etc/apt/sources.list.d/grafana.list
-fi
 
 echo ">>> [2/6] apt update ..."
 apt-get update -qq
 
-echo ">>> [3/6] Installiere ALLE Pakete (InfluxDB, Grafana, Python, Tools) ..."
+echo ">>> [3/6] Installiere ALLE Pakete (InfluxDB, Python, Tools) ..."
 apt-get install -y -qq \
   influxdb \
-  grafana \
   python3-serial \
   python3-influxdb \
+  python3-flask \
+  python3-requests \
   curl gnupg wget tar git
 
-# --- Prüfung der Python-Module (Abhängigkeit des LiveLoggers) ------------------
-python3 -c "import serial, influxdb" \
-  && echo ">>> Python-Module OK (pyserial + influxdb)" \
+python3 -c "import serial, influxdb, flask, requests" \
+  && echo ">>> Python-Module OK (pyserial + influxdb + flask + requests)" \
   || { echo "FEHLER: Python-Module fehlen!"; exit 1; }
 
 echo ""
@@ -160,27 +155,16 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# Grafana: 1s-Refresh freischalten + Dienst + Datasource
+# Grafana-Entfernung (falls von einem früheren Stand noch installiert)
 # ------------------------------------------------------------------------------
-echo ">>> Grafana: 1s-Refresh freischalten ..."
-if [ ! -f /etc/systemd/system/grafana-server.service.d/override.conf ] || \
-   ! grep -q "GF_DASHBOARDS_MIN_REFRESH_INTERVAL" /etc/systemd/system/grafana-server.service.d/override.conf 2>/dev/null; then
-  mkdir -p /etc/systemd/system/grafana-server.service.d
-  printf '[Service]\nEnvironment="GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s"\n' \
-    > /etc/systemd/system/grafana-server.service.d/override.conf
+if dpkg -s grafana >/dev/null 2>&1; then
+  echo ">>> Grafana deinstallieren (Visualisierung laeuft ueber LiveWeb) ..."
+  systemctl stop grafana-server 2>/dev/null || true
+  systemctl disable grafana-server 2>/dev/null || true
+  apt-get purge -y -qq grafana
+  rm -rf /etc/grafana /var/lib/grafana /var/log/grafana
+  rm -rf /etc/systemd/system/grafana-server.service.d
 fi
-# Falsche [panels]-Sektion in der INI entfernen (Grafana 13 liest [dashboards]):
-sed -i '/^min_refresh_interval = 1s$/d' /etc/grafana/grafana.ini 2>/dev/null || true
-
-systemctl enable --now grafana-server
-systemctl restart grafana-server
-sleep 10
-
-curl -s --user admin:admin123 "http://localhost:3001/api/datasources" -X POST \
-  -H 'Content-Type: application/json;charset=UTF-8' \
-  --data-binary '{"name":"SBMS_Data","uid":"dg20jcsde4wlcd","isDefault":true,"type":"influxdb",\
-"url":"http://localhost:8086","database":"SBMS","access":"proxy","basicAuth":false}' \
-  > /dev/null || echo "    Hinweis: Datasource ggf. manuell im Grafana-UI anlegen."
 
 # ------------------------------------------------------------------------------
 # Abschluss + Status
@@ -189,12 +173,12 @@ IP=$(hostname -I | awk '{print $1}')
 echo ""
 echo "=============================================================="
 echo " FERTIG! Status der Dienste:"
-systemctl is-active influxdb grafana-server SBMS-LiveLogger \
-  | paste -d' ' <(echo -e "influxdb:\ngrafana-server:\nSBMS-LiveLogger:") - \
+systemctl is-active influxdb SBMS-LiveLogger \
+  | paste -d' ' <(echo -e "influxdb:\nSBMS-LiveLogger:") - \
   || true
 echo ""
-echo "  Grafana  : http://${IP}:3001   (admin/admin123 - ändern!)"
-echo "  Dashboards: SBMS-Dash-START / -LIVE / -BERECHNUNGEN / -HISTORIE importieren"
-echo "              (Datasource-UID dg20jcsde4wlcd ist bereits angelegt)"
+echo "  Visualisierung: SBMS-LiveWeb (Port 8090) installieren mit:"
+echo "    sudo python3 install_liveweb.py"
+echo "    (oder gleich komplett: sudo bash install_all.sh)"
 echo "  Updates  : sudo apt update && sudo apt upgrade"
 echo "=============================================================="

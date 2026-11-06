@@ -1,5 +1,4 @@
 import os
-import socket
 
 # ==============================================================================
 # SBMS0 Raspberry-Pi Installer (LITE/IOT-Variante, Python 3)
@@ -45,18 +44,6 @@ os.system("sudo systemctl daemon-reload")
 os.system("sudo systemctl enable SBMS-Logger.service")
 os.system("sudo systemctl start SBMS-Logger.service")
 
-
-# --- Grafana-Datasource ---
-def get_ip_address():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    return s.getsockname()[0]
-
-ipaddress = get_ip_address()
-os.system("curl --user admin:admin \"http://" + ipaddress + ":3000/api/datasources\" -X POST "
-          "-H 'Content-Type: application/json;charset=UTF-8' --data-binary "
-          "'{\"name\":\"SBMS_Data\",\"isDefault\":true ,\"type\":\"influxdb\","
-          "\"url\":\"http://localhost:8086\",\"database\":\"SBMS\",\"access\":\"proxy\",\"basicAuth\":false}'")
-
-print("Login to http://" + ipaddress + ":3000")
-print("Username = admin, password = admin (sofort aendern!)")
+print("InfluxDB  : http://localhost:8086")
+print("Visualisierung: SBMS-LiveWeb installieren -  sudo python3 install_liveweb.py")
+print("(Kein Grafana - Live-Web uebernimmt die Dashboards, Port 8090)")

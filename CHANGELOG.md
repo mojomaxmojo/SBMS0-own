@@ -4,6 +4,18 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-06 – Grafana komplett aus allen Installern entfernt
+
+- `install_dietpi.sh`: Grafana-Repo-Anlage, `apt install grafana`,
+  systemd-Override, Datasource-Curl und Grafana-Statuszeilen entfernt.
+  Neuer Abschnitt deinstalliert Grafana (`apt purge` + Verzeichnisse +
+  Repo/Key), falls von früheren Läufen noch vorhanden.
+- `SBMS_Pi_install.py`: Grafana-Repo, `apt install grafana`, Datasource
+  (Port 3000) und Grafana-Hinweise entfernt; deinstalliert Reste ebenfalls.
+- `SBMS_Pi-IOT_install.py`: tote Grafana-Datasource- und Port-3000-Reste entfernt.
+- Doku (README/AGENTS) angepasst. Visualisierung weiterhin nur über
+  SBMS-LiveWeb (Port 8090).
+
 ## 2026-11-06 – Repo-Umstellung: `SBMS0-test` → `SBMS0-own`
 
 **Was geändert wurde:**

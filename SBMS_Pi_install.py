@@ -2,8 +2,11 @@ import os
 import socket
 
 # ==============================================================================
-# SBMS0 Raspberry-Pi Installer (InfluxDB + Grafana + Serial-Logger)
+# SBMS0 Raspberry-Pi Installer (InfluxDB + Serial-Logger, OHNE Grafana)
 # Batterie: 280 Ah / 24 V (8s LiFePO4)
+#
+# Visualisierung läuft über SBMS-LiveWeb (Port 8090) - siehe install_liveweb.py.
+# Falls Grafana von einem früheren Stand installiert ist, wird es entfernt.
 #
 # Voraussetzung: Raspberry Pi OS (Bookworm oder neuer), Root-Rechte (sudo)
 # Aufruf:        sudo python3 SBMS_Pi_install.py
@@ -16,14 +19,6 @@ os.system("curl -fsSL https://repos.influxdata.com/influxdata-archive.key | "
 os.system("echo 'deb [signed-by=/etc/apt/keyrings/influxdata.gpg] "
           "https://repos.influxdata.com/debian bookworm stable' | "
           "sudo tee /etc/apt/sources.list.d/influxdb.list")
-
-# --- Grafana-Repository ---
-os.system("sudo mkdir -p /etc/apt/keyrings")
-os.system("curl -fsSL https://apt.grafana.com/gpg.key | "
-          "sudo gpg --dearmor -o /etc/apt/keyrings/grafana.gpg")
-os.system("echo 'deb [signed-by=/etc/apt/keyrings/grafana.gpg] "
-          "https://apt.grafana.com stable main' | "
-          "sudo tee /etc/apt/sources.list.d/grafana.list")
 
 os.system("sudo apt update")
 
@@ -44,9 +39,15 @@ os.system("influx -execute 'CREATE CONTINUOUS QUERY \"cq_1m\" ON \"SBMS\" BEGIN 
 os.system("sudo apt install -y python3-pip python3-serial python3-influxdb")
 os.system("sudo pip3 install pyserial influxdb --break-system-packages")
 
-# --- Grafana installieren & starten ---
-os.system("sudo apt install -y grafana")
-os.system("sudo systemctl enable --now grafana-server")
+# --- Grafana-Entfernung (falls von früheren Läufen vorhanden) ---
+os.system("if dpkg -s grafana >/dev/null 2>&1; then "
+          "sudo systemctl stop grafana-server 2>/dev/null; "
+          "sudo systemctl disable grafana-server 2>/dev/null; "
+          "sudo apt purge -y grafana; "
+          "sudo rm -rf /etc/grafana /var/lib/grafana /var/log/grafana "
+          "/etc/systemd/system/grafana-server.service.d; "
+          "sudo rm -f /etc/apt/sources.list.d/grafana.list "
+          "/etc/apt/keyrings/grafana.gpg; fi")
 
 # --- Logger-Skript + systemd-Unit laden ---
 os.system("sudo wget --no-check-certificate --content-disposition "
@@ -57,18 +58,6 @@ os.system("sudo systemctl daemon-reload")
 os.system("sudo systemctl enable SBMS-Logger.service")
 os.system("sudo systemctl start SBMS-Logger.service")
 
-
-# --- Grafana-Datasource anlegen ---
-def get_ip_address():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    return s.getsockname()[0]
-
-ipaddress = get_ip_address()
-os.system("curl --user admin:admin \"http://" + ipaddress + ":3000/api/datasources\" -X POST "
-          "-H 'Content-Type: application/json;charset=UTF-8' --data-binary "
-          "'{\"name\":\"SBMS_Data\",\"isDefault\":true ,\"type\":\"influxdb\","
-          "\"url\":\"http://localhost:8086\",\"database\":\"SBMS\",\"access\":\"proxy\",\"basicAuth\":false}'")
-
-print("Login to http://" + ipaddress + ":3000")
-print("Username = admin, password = admin (sofort aendern!)")
+print("InfluxDB  : http://localhost:8086")
+print("Visualisierung: SBMS-LiveWeb installieren -  sudo python3 install_liveweb.py")
+print("(Kein Grafana mehr noetig - Live-Web uebernimmt die Dashboards, Port 8090)")

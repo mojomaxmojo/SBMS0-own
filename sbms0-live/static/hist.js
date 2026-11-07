@@ -215,27 +215,6 @@ let dailyPlot = null;
 const fmtKwh = (v) => v == null ? '–' : Number(v).toFixed(2) + ' kWh';
 const fmtPct = (v) => v == null ? '–' : Number(v).toFixed(0) + ' %';
 
-function drawDailyBars(u) {
-  const ctx = u.ctx;
-  const n = u.data[0].length;
-  if (n < 1) return;
-  const step = n > 1 ? Math.abs(u.valToPos(u.data[0][1], 'x', true) - u.valToPos(u.data[0][0], 'x', true)) : u.bbox.w;
-  const w = Math.max(3, Math.min(step * 0.72, 60));
-  const y0 = u.valToPos(0, 'kwh', true);   // Nulllinie auf der kWh-Skala
-  ctx.save();
-  // Netto-Balken: grün = Überschuss (+), rot = Defizit (–)
-  for (let i = 0; i < u.data[1].length; i++) {
-    const v = u.data[1][i];
-    if (v == null) continue;
-    const x = u.valToPos(u.data[0][i], 'x', true);
-    const y = u.valToPos(v, 'kwh', true);
-    ctx.fillStyle = v >= 0 ? 'rgba(115,191,105,0.8)' : 'rgba(242,73,92,0.8)';
-    const top = v >= 0 ? y : y0;
-    ctx.fillRect(x - w / 2, top, w, Math.max(1, Math.abs(y0 - y)));
-  }
-  ctx.restore();
-}
-
 async function updateDaily() {
   const s = await fetchSeries(Q_DAILY());
   const box = $('dailylegend');
@@ -260,40 +239,32 @@ async function updateDaily() {
   const keys = [...buckets.keys()].sort((a, b) => a - b);
   if (!keys.length) { box.innerHTML = ''; return; }
 
-  const data = [[], [], [], [], [], []];
-  let maxAbs = 0.1;
+  const data = [[], [], []];
+  let min = 0, max = 0;
   let sum = 0;                                  // kumulierte Bilanz über den Zeitraum
   for (const t of keys) {
     const b = buckets.get(t);
     const pv = b.pv / 1000;                     // Stunden-Mittel (W) -> kWh
     const cons = b.cons / 1000;
-    const net = pv - cons;                      // + Überschuss / – Defizit
+    sum += pv - cons;                           // + Überschuss / – Defizit
     const soc = b.socN ? b.soc / b.socN : null;
-    sum += net;
     data[0].push(t);
-    data[1].push(Number(net.toFixed(3)));       // Netto-Balken
-    data[2].push(Number(sum.toFixed(2)));       // kumulierte Bilanz (Linie)
-    data[3].push(Number(pv.toFixed(3)));
-    data[4].push(Number(cons.toFixed(3)));
-    data[5].push(soc == null ? null : Number(soc.toFixed(1)));
-    maxAbs = Math.max(maxAbs, Math.abs(net), Math.abs(sum));
+    data[1].push(Number(sum.toFixed(2)));       // kumulierte Bilanz (Linie)
+    data[2].push(soc == null ? null : Number(soc.toFixed(1)));
+    min = Math.min(min, sum); max = Math.max(max, sum);
   }
-  // Y-Achse auf "netten" Wert runden
-  const yMax = Math.max(1, Math.ceil(maxAbs * 1.15));
-  const nice = yMax <= 2 ? 2 : yMax <= 5 ? 5 : Math.ceil(yMax / 5) * 5;
+  // Y-Achse: Nulllinie immer sichtbar (Plus oben, Minus unten)
+  const span = Math.max(1, Math.ceil(Math.max(Math.abs(min), Math.abs(max)) * 1.15));
+  const nice = span <= 2 ? 2 : span <= 5 ? 5 : Math.ceil(span / 5) * 5;
 
   const opts = uplotBaseOpts(260, (u, vals) => vals.map((v) => Number(v).toFixed(1) + ' kWh'));
   opts.width = $('dailychart').clientWidth;
   opts.legend = { show: false };
   opts.cursor = { x: true, y: false, points: { show: false } };
-  opts.hooks = { draw: [drawDailyBars] };
   opts.series = [
     {},
-    { label: 'Bilanz (Netto)', show: false, scale: 'kwh' },  // Balken (via draw-Hook)
-    { label: 'Bilanz kumuliert', stroke: '#f2cc0c', width: 1.5, scale: 'kwh', spanGaps: true,
-      points: { show: false }, dash: [4, 3] },
-    { label: 'Erzeugt (PV)', show: false, scale: 'kwh' },    // nur Legende
-    { label: 'Verbraucht', show: false, scale: 'kwh' },      // nur Legende
+    { label: 'Bilanz kumuliert', stroke: '#f2cc0c', width: 2, scale: 'kwh', spanGaps: true,
+      points: { show: false } },
     { label: 'SOC (Mittel)', stroke: '#5794f2', width: 1.5, scale: 'soc', spanGaps: true,
       points: { show: false } },
   ];
@@ -317,11 +288,9 @@ async function updateDaily() {
 
   $('daily-hint').textContent = hourly ? 'stündlich' : 'pro Tag';
   renderLegendTable(box, [
-    { label: 'Bilanz (Netto)', color: '#73bf69', values: data[1], fmt: fmtKwh },
-    { label: 'Bilanz kumuliert', color: '#f2cc0c', values: data[2], fmt: fmtKwh },
-    { label: 'Erzeugt (PV)', color: '#73bf69', values: data[3], fmt: fmtKwh },
-    { label: 'Verbraucht', color: '#ff9830', values: data[4], fmt: fmtKwh },
-    { label: 'SOC (Mittel)', color: '#5794f2', values: data[5], fmt: fmtPct },
+    { label: 'Bilanz kumuliert', color: '#f2cc0c', values: data[1],
+      fmt: (v) => v == null ? '–' : (v >= 0 ? '+' : '') + fmtKwh(v) },
+    { label: 'SOC (Mittel)', color: '#5794f2', values: data[2], fmt: fmtPct },
   ], ['Min', 'Mean', 'Max']);
 }
 

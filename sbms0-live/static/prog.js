@@ -109,9 +109,13 @@ async function load() {
     $('fcchartdays').innerHTML = `<span class="err-ts">Prognose-Fehler: ${e.message || e}</span>`;
   }
 
+  /* --- Rückblick letzte 7 Tage (unten) --- */
+  try {
+    await loadPast(cmp, cmp.pr);
+  } catch (e) { /* still */ }
+
   /* --- Ist vs. Prognose (letzte 7 Tage) --- */
   try {
-    const cmp = await fetchJSON('/pvcompare');
     if (cmp.error) throw new Error(cmp.error);
     $('cmp-hint').textContent = `PR ${cmp.pr.toFixed(2)} · Zeitzone ${cmp.timezone}`;
     let html = '<table class="legend-table"><tr><th>Tag</th><th>Prognose</th><th>Real (Influx)</th><th>Abw.</th></tr>';
@@ -137,6 +141,76 @@ async function load() {
   } catch (e) {
     $('cmp-table').innerHTML = `<span class="err-ts">Vergleich-Fehler: ${e.message || e}</span>`;
   }
+}
+
+/* — Rückblick letzte 7 Tage: kalibrierte Prognose vs. Real (Balkenpaare) — */
+let fcPastPlot = null;
+
+function drawBarPairs(u, colors) {
+  // u.data: [x, vA, vB]; zeichnet je Tag zwei Balken mit Zahlen
+  const ctx = u.ctx;
+  const n = u.data[0].length;
+  if (n < 1) return;
+  const step = n > 1
+    ? Math.abs(u.valToPos(u.data[0][1], 'x', true) - u.valToPos(u.data[0][0], 'x', true))
+    : u.bbox.w;
+  const w = Math.max(3, Math.min(step * 0.28, 50));
+  const y0 = u.valToPos(0, 'kwhd', true);
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const x = u.valToPos(u.data[0][i], 'x', true);
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const a = u.data[1][i], b = u.data[2][i];
+    if (a != null) {
+      const y = u.valToPos(a, 'kwhd', true);
+      ctx.fillStyle = colors.aFill;
+      ctx.fillRect(x - w - 1, y, w, Math.max(1, y0 - y));
+      ctx.fillStyle = colors.aText;
+      ctx.fillText(a.toFixed(2), x - w / 2 - 1, y - 4);
+    }
+    if (b != null) {
+      const y = u.valToPos(b, 'kwhd', true);
+      ctx.fillStyle = colors.bFill;
+      ctx.fillRect(x + 1, y, w, Math.max(1, y0 - y));
+      ctx.fillStyle = colors.bText;
+      ctx.fillText(b.toFixed(2), x + w / 2 + 1, y - 4);
+    }
+  }
+  ctx.restore();
+}
+
+async function loadPast(cmp, pr) {
+  const days = (cmp.days || []).slice(-8);
+  const times = days.map((d) => new Date(d.date + 'T12:00:00').getTime());
+  const fcV = days.map((d) => Number(d.forecast));
+  const reV = days.map((d) => d.real == null ? null : Number(d.real));
+  const maxV = Math.max(1, ...fcV, ...reV.filter((v) => v != null)) * 1.2;
+
+  const opts = uplotBaseOpts(220, (u, vals) => vals.map((v) => Number(v).toFixed(0)));
+  opts.width = $('fcpastchart').clientWidth;
+  opts.legend = { show: false };
+  opts.cursor = { x: true, y: false, points: { show: false } };
+  opts.scales = { x: { time: true }, kwhd: { auto: false, range: [0, maxV] } };
+  opts.series = [
+    {},
+    { label: 'Prognose', show: false, scale: 'kwhd' },
+    { label: 'Real', show: false, scale: 'kwhd' },
+  ];
+  opts.axes = [
+    { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
+      values: (u, vals) => vals.map((v) => new Date(v).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
+    { scale: 'kwhd', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
+      values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
+  ];
+  opts.hooks = { draw: [drawBarPairs] };
+  if (fcPastPlot) { fcPastPlot.destroy(); fcPastPlot = null; }
+  try {
+    fcPastPlot = new uPlot(opts, [times, fcV, reV], $('fcpastchart'));
+  } catch (e) {
+    $('fcpastchart').innerHTML = '<span class="err-ts">Chart-Fehler: ' + (e.message || e) + '</span>';
+  }
+  $('pr-hint').textContent = pr.toFixed(2);
 }
 
 /* --- Reinigungs-Hinweis --- */

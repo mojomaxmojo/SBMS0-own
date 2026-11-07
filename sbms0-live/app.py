@@ -439,6 +439,7 @@ def forecast():
         'kwp': kwp, 'pr': pr, 'tilt': cfg.get('tilt'),
         'model': 'solXpect',
         'inverter': f"{cfg.get('inverter_power', 0)} W / {cfg.get('inverter_efficiency', 90)}%",
+        'shade_below': cfg.get('shade_below_elevation', 0),
         'shade_from': cfg.get('shade_from', ''), 'shade_percent': cfg.get('shade_percent', 0),
         'unit': 'W', 'times': times_local, 'watts': watts, 'daily': daily,
         'fetched_at': int(now),

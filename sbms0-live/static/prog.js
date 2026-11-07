@@ -33,7 +33,8 @@ async function load() {
     $('pv-headline').textContent =
       `PV-Prognose (${fc.daily.length} Tage) – ${cfg.ort || ''} · ${fc.kwp} kWp · ${fc.tilt}° · ` +
       `WR ${fc.inverter || ''}` +
-      (fc.shade_from ? ` · Schatten ab ${fc.shade_from} (${fc.shade_percent}%)` : '') +
+      (fc.shade_below ? ` · Schatten < ${fc.shade_below}° Sonnenhöhe (${fc.shade_percent}%)` :
+        fc.shade_from ? ` · Schatten ab ${fc.shade_from} (${fc.shade_percent}%)` : '') +
       ` · solXcept-Modell`;
 
     /* Tages-Balkendiagramm: Prognose + Real nebeneinander, kWh-Zahl oben */

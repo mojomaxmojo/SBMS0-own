@@ -98,23 +98,28 @@ class Plant:
         self.inv_limit = float(cfg.get('inverter_power', 0) or 0)
         self.inv_eff = float(cfg.get('inverter_efficiency', 90) or 90) / 100.0
         self.fine_tune = float(cfg.get('performance_ratio', 1.0) or 1.0)
-        self.shade_from = str(cfg.get('shade_from', '') or '')      # "16:00" oder ''
+        self.shade_below = float(cfg.get('shade_below_elevation', 0) or 0)  # Sonnenhöhe in °
+        self.shade_from = str(cfg.get('shade_from', '') or '')      # alternative Uhrzeit "16:00"
         self.shade_percent = float(cfg.get('shade_percent', 100) or 100)
         self.timezone_name = cfg.get('timezone', 'Europe/Lisbon')
 
-    def _shade_factor(self, local_hhmm):
-        """Zeit-basierte Verschattung: ab 'HH:MM' lokale Zeit shade_percent."""
-        if not self.shade_from or self.shade_percent <= 0:
+    def _shade_factor(self, elevation_deg, local_hhmm):
+        """Verschattung: bevorzugt über Sonnenhöhe (jahreszeitenunabhängig,
+        passend für mobile Anlagen); alternativ über feste Uhrzeit."""
+        if self.shade_percent <= 0:
             return 1.0
-        try:
-            from_h, from_m = self.shade_from.split(':')
-            limit = int(from_h) * 60 + int(from_m)
-            now_h, now_m = local_hhmm.split(':')
-            cur = int(now_h) * 60 + int(now_m)
-            if cur >= limit:
-                return 1.0 - self.shade_percent / 100.0
-        except (ValueError, AttributeError):
-            return 1.0
+        blocked = 1.0 - self.shade_percent / 100.0
+        if self.shade_below > 0:
+            return blocked if elevation_deg < self.shade_below else 1.0
+        if self.shade_from:
+            try:
+                from_h, from_m = self.shade_from.split(':')
+                limit = int(from_h) * 60 + int(from_m)
+                now_h, now_m = local_hhmm.split(':')
+                if (int(now_h) * 60 + int(now_m)) >= limit:
+                    return blocked
+            except (ValueError, AttributeError):
+                return 1.0
         return 1.0
 
     def get_power(self, dni, dif, ghi, ambient_temp, ts_utc, local_hhmm):
@@ -136,7 +141,7 @@ class Plant:
         if dni > 0:
             dot = sum(sun[j] * normal[j] for j in range(3))
             efficiency = max(0.0, dot)
-        shade = self._shade_factor(local_hhmm)
+        shade = self._shade_factor(elevation, local_hhmm)
 
         reflected = ghi * (0.5 - 0.5 * math.cos(math.radians(self.tilt))) * self.albedo
         total = dni * efficiency + dif * self.diffuse_eff + reflected

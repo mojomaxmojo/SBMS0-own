@@ -21,7 +21,7 @@
   "kwp": 2.25,
   "tilt": 0,
   "azimuth": 180,
-  "performance_ratio": 0.75,
+  "performance_ratio": 0.34,
   "timezone": "Europe/Lisbon",
   "forecast_days": 7,
   "service": "open-meteo"

@@ -231,7 +231,7 @@ def rain():
         dates = daily['time']
         mm = daily['precipitation_sum']
         for d, v in zip(dates, mm):
-            if v is not None and float(v) >= 2.0:      # >= 2 mm = "Waschregen"
+            if v is not None and float(v) >= 5.0:      # >= 5 mm = "Waschregen"
                 last_rain = d
             if d >= (today - timedelta(days=7)).isoformat() and v is not None:
                 rain_mm_7d += float(v)

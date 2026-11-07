@@ -121,7 +121,7 @@ async function loadRain() {
     el.textContent = `${icon} ${rn.text}`;
     el.style.color = color;
     const parts = [];
-    if (rn.last_rain) parts.push(`letzter Waschregen (≥2 mm): ${rn.last_rain}`);
+    if (rn.last_rain) parts.push(`letzter Waschregen (≥5 mm): ${rn.last_rain}`);
     if (rn.last_cleaned) parts.push(`letzte Reinigung: ${rn.last_cleaned}`);
     parts.push(`Regen 7 Tage: ${rn.rain_mm_7d} mm`);
     de.textContent = parts.join(' · ') + ' · nach Reinigung Datum in pv.json (last_cleaned) eintragen';

@@ -289,8 +289,10 @@ async function updateDailyInner() {
     { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
       values: (u, vals) => {
         if (hourly) return vals.map((v) => new Date(v).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
-        if (range.hours <= 24 * 730) return vals.map((v) => new Date(v).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }));
-        return vals.map((v) => new Date(v).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }));
+        if (range.hours <= 24 * 730) {
+          return dedupeDayLabels(vals, (d) => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }));
+        }
+        return dedupeDayLabels(vals, (d) => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }));
       } },
     { scale: 'kwh', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 62,
       values: (u, vals) => vals.map((v) => Number(v).toFixed(1)) },

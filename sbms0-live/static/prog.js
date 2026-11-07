@@ -55,7 +55,8 @@ async function load() {
     ];
     dayOpts.axes = [
       { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-        values: (u, vals) => vals.map((v) => new Date(v).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
+        values: (u, vals) => dedupeDayLabels(vals,
+          (d) => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
       { scale: 'kwhd', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
         values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
     ];
@@ -207,7 +208,8 @@ async function loadPast(cmp, pr) {
   ];
   opts.axes = [
     { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-      values: (u, vals) => vals.map((v) => new Date(v).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
+      values: (u, vals) => dedupeDayLabels(vals,
+        (d) => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
     { scale: 'kwhd', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
       values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
   ];

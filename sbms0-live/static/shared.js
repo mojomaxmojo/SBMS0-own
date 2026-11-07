@@ -103,6 +103,20 @@ function renderLegendTable(el, series, calcs) {
   el.innerHTML = html;
 }
 
+/* ---- Achsen-Labels: pro Kalendertag nur 1 Label (Rest leer) ---- */
+// vals = Tick-Zeitstempel, fmtDay(d) liefert das Label für den ERSTEN Tick
+// eines jeden Tages. Folgeticks desselben Tages -> '' (leer).
+function dedupeDayLabels(vals, fmtDay) {
+  let last = '';
+  return vals.map((v) => {
+    const d = new Date(v);
+    const key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    if (key === last) return '';
+    last = key;
+    return fmtDay(d);
+  });
+}
+
 /* ---- uPlot-Default-Optionen (Grafana-Dark-Look) ---- */
 // X-Achse je nach gezeigtem Zeitraum:
 //   <= 26 h     -> nur Uhrzeit (16:07)

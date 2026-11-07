@@ -21,11 +21,13 @@ setInterval(() => {
 
 async function load() {
   const status = $('status');
+  let cmp = null;
   try {
     status.textContent = 'lade…';
-    const [cfg, fc, cmp] = await Promise.all([
+    const [cfg, fc, cmpResp] = await Promise.all([
       fetchJSON('/pvconfig'), fetchJSON('/forecast'), fetchJSON('/pvcompare'),
     ]);
+    cmp = cmpResp;
     if (fc.error) throw new Error(fc.error);
 
     $('pv-headline').textContent =
@@ -111,11 +113,13 @@ async function load() {
 
   /* --- Rückblick letzte 7 Tage (unten) --- */
   try {
+    if (!cmp) throw new Error('Vergleichsdaten fehlen');
     await loadPast(cmp, cmp.pr);
   } catch (e) { /* still */ }
 
   /* --- Ist vs. Prognose (letzte 7 Tage) --- */
   try {
+    if (!cmp) throw new Error('Vergleichsdaten fehlen');
     if (cmp.error) throw new Error(cmp.error);
     $('cmp-hint').textContent = `PR ${cmp.pr.toFixed(2)} · Zeitzone ${cmp.timezone}`;
     let html = '<table class="legend-table"><tr><th>Tag</th><th>Prognose</th><th>Real (Influx)</th><th>Abw.</th></tr>';

@@ -49,6 +49,8 @@ def load_json_cfg(path, fallback):
 # Einfacher Prozess-Cache fuer die Open-Meteo-Prognose (30 min)
 _FC_CACHE = {'ts': 0, 'data': None}
 FC_TTL = 30 * 60
+# Cache fuer den Reinigungs-Hinweis (6 h - Regenbericht aendert sich langsam)
+_RAIN_CACHE = {'ts': 0, 'data': None}
 
 _ALARM_FALLBACK = {
     'banner_titel': 'BATTERIE-FEHLER',
@@ -188,6 +190,81 @@ def pvcompare():
         out.append({'date': day, 'forecast': fc_kwh, 'real': re_kwh, 'diff_pct': diff})
 
     return jsonify({'pr': pr, 'kwp': kwp, 'timezone': str(LOCAL_TZ), 'days': out[-8:]})
+@app.route('/rain')
+def rain():
+    """Reinigungs-Hinweis: Tage seit letztem Waschregen (Open-Meteo,
+    30 Rueck-Tage) vs. Tage seit letzter manueller Reinigung (pv.json)."""
+    import time as _time
+    from datetime import datetime, timedelta
+
+    now = _time.time()
+    if _RAIN_CACHE['data'] is not None and now - _RAIN_CACHE['ts'] < 6 * 3600:
+        return jsonify(_RAIN_CACHE['data'])
+
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    try:
+        tzname = cfg.get('timezone', 'Europe/Lisbon')
+        from zoneinfo import ZoneInfo
+        LOCAL_TZ = ZoneInfo(tzname)
+    except Exception:
+        from datetime import timezone as _tz
+        LOCAL_TZ = _tz.utc
+    today = datetime.now(LOCAL_TZ).date()
+
+    last_rain = None
+    rain_mm_7d = 0.0
+    try:
+        r = requests.get(
+            'https://api.open-meteo.com/v1/forecast',
+            params={
+                'latitude': cfg.get('latitude'),
+                'longitude': cfg.get('longitude'),
+                'daily': 'precipitation_sum',
+                'past_days': 30, 'forecast_days': 1,
+                'timezone': 'Europe/Berlin',
+            },
+            timeout=15,
+        )
+        r.raise_for_status()
+        daily = r.json()['daily']
+        dates = daily['time']
+        mm = daily['precipitation_sum']
+        for d, v in zip(dates, mm):
+            if v is not None and float(v) >= 2.0:      # >= 2 mm = "Waschregen"
+                last_rain = d
+            if d >= (today - timedelta(days=7)).isoformat() and v is not None:
+                rain_mm_7d += float(v)
+    except (requests.RequestException, ValueError, KeyError):
+        pass  # offline -> nur last_cleaned bewerten
+
+    days_rain = (today - datetime.strptime(last_rain, '%Y-%m-%d').date()).days \
+        if last_rain else None
+    lc = str(cfg.get('last_cleaned', '') or '')
+    days_clean = (today - datetime.strptime(lc, '%Y-%m-%d').date()).days \
+        if lc else None
+
+    # Massgebend: die juengere der beiden "Reinigungen" (Regen oder manuell)
+    eff = min([d for d in (days_rain, days_clean) if d is not None], default=None)
+    if eff is None:
+        status, text = 'unknown', 'Keine Regen-/Reinigungsdaten'
+    elif eff >= 30:
+        status, text = 'due', f'Reinigung FAELLIG ({eff} Tage kein Waschregen/Reinigung)'
+    elif eff >= 14:
+        status, text = 'soon', f'Bald reinigen ({eff} Tage seit letztem Waschregen/Reinigung)'
+    else:
+        status, text = 'ok', f'Module ok ({eff} Tage seit letztem Waschregen/Reinigung)'
+
+    data = {
+        'status': status, 'text': text, 'days': eff,
+        'last_rain': last_rain, 'rain_mm_7d': round(rain_mm_7d, 1),
+        'last_cleaned': lc or None, 'today': today.isoformat(),
+    }
+    _RAIN_CACHE['ts'] = now
+    _RAIN_CACHE['data'] = data
+    return jsonify(data)
+
+
 @app.route('/pvconfig')
 def pvconfig():
     """Editierbare PV-Prognose-Konfiguration (pv.json)."""

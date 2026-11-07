@@ -110,6 +110,27 @@ async function load() {
   }
 }
 
+/* --- Reinigungs-Hinweis --- */
+async function loadRain() {
+  try {
+    const rn = await fetchJSON('/rain');
+    const el = $('clean-status'), de = $('clean-detail');
+    const color = rn.status === 'ok' ? 'var(--green)'
+      : rn.status === 'soon' ? '#f2cc0c' : rn.status === 'due' ? 'var(--red)' : 'var(--dim)';
+    const icon = rn.status === 'ok' ? '✓' : rn.status === 'soon' ? '⏳' : rn.status === 'due' ? '💧' : '–';
+    el.textContent = `${icon} ${rn.text}`;
+    el.style.color = color;
+    const parts = [];
+    if (rn.last_rain) parts.push(`letzter Waschregen (≥2 mm): ${rn.last_rain}`);
+    if (rn.last_cleaned) parts.push(`letzte Reinigung: ${rn.last_cleaned}`);
+    parts.push(`Regen 7 Tage: ${rn.rain_mm_7d} mm`);
+    de.textContent = parts.join(' · ') + ' · nach Reinigung Datum in pv.json (last_cleaned) eintragen';
+  } catch (e) {
+    $('clean-status').textContent = '–';
+    $('clean-detail').textContent = 'Reinigungs-Hinweis nicht verfügbar';
+  }
+}
+
 function fmtWFC(v) {
   if (v == null) return '–';
   const a = Math.abs(v);
@@ -118,5 +139,7 @@ function fmtWFC(v) {
 }
 
 load();
+loadRain();
 setInterval(load, 30 * 60000);  // alle 30 min (Server-Cache ist auch 30 min)
+setInterval(loadRain, 6 * 3600000);
 window.addEventListener('resize', () => load());

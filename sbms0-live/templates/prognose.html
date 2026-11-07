@@ -26,6 +26,14 @@
 <div class="row-title" id="pv-headline">PV-Prognose (7 Tage) – lade…</div>
 
 <div class="grid">
+  <div class="panel stat-card" id="clean-panel" style="grid-column: span 24">
+    <div class="panel-title">Modul-Reinigung</div>
+    <div class="stat"><div class="stat-value" id="clean-status">–</div></div>
+    <div class="stat-sub" id="clean-detail">–</div>
+  </div>
+</div>
+
+<div class="grid">
   <div class="panel" id="fc-chart-panel">
     <div class="panel-title">Theoretischer Ertrag (Stunden-Werte, W) <span class="override-hint" id="fc-src-hint"></span></div>
     <div id="fcchart"></div>
@@ -49,6 +57,6 @@
 
 <script src="/static/uplot.iife.min.js"></script>
 <script src="/static/shared.js?v=3"></script>
-<script src="/static/prog.js?v=2"></script>
+<script src="/static/prog.js?v=3"></script>
 </body>
 </html>

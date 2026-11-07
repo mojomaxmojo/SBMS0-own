@@ -12,6 +12,8 @@
     "                    0.85 = ideal-optimistisch; mit 'ist-vs-prognose' kalibrieren",
     "service:            open-meteo (einzige unterstuetzte Quelle)",
     "timezone:           lokale Zeitzone fuer Tagesgrenzen des Ist-Ertrags",
+    "last_cleaned:       Datum der letzten Modulreinigung (JJJJ-MM-TT) - nach",
+    "                    jeder Reinigung hier eintragen (leer = unbekannt)",
     "ort:                frei text (nur Anzeige)"
   ],
 
@@ -23,6 +25,7 @@
   "azimuth": 180,
   "performance_ratio": 0.34,
   "timezone": "Europe/Lisbon",
+  "last_cleaned": "",
   "forecast_days": 7,
   "service": "open-meteo"
 }

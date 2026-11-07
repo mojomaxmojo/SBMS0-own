@@ -221,7 +221,7 @@ function drawDailyBars(u) {
   if (n < 1) return;
   const step = n > 1 ? Math.abs(u.valToPos(u.data[0][1], 'x', true) - u.valToPos(u.data[0][0], 'x', true)) : u.bbox.w;
   const w = Math.max(3, Math.min(step * 0.72, 60));
-  const y0 = u.valToPos(0, 'y', true);
+  const y0 = u.valToPos(0, 'kwh', true);   // Nulllinie auf der kWh-Skala
   ctx.save();
   for (const [si, color] of [[1, 'rgba(115,191,105,0.75)'], [2, 'rgba(255,152,48,0.75)']]) {
     ctx.fillStyle = color;
@@ -229,7 +229,7 @@ function drawDailyBars(u) {
       const v = u.data[si][i];
       if (v == null) continue;
       const x = u.valToPos(u.data[0][i], 'x', true);
-      const y = u.valToPos(v, 'y', true);
+      const y = u.valToPos(v, 'kwh', true);
       const top = v >= 0 ? y : y0;
       ctx.fillRect(x - w / 2, top, w, Math.max(1, Math.abs(y0 - y)));
     }

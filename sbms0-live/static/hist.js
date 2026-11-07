@@ -269,7 +269,9 @@ async function updateDailyInner() {
   const opts = uplotBaseOpts(260, (u, vals) => vals.map((v) => Number(v).toFixed(1) + ' kWh'));
   opts.width = $('dailychart').clientWidth;
   opts.legend = { show: false };
-  opts.cursor = { x: true, y: false, points: { show: true, size: 5, stroke: '#fff', fill: '#fff' } };
+  // WICHTIG: cursor.points.show nur mit aktiver uPlot-Legende nutzen –
+  // mit legend.show:false stürzt uPlot ab ("t is undefined").
+  opts.cursor = { x: true, y: false, points: { show: false } };
   opts.series = [
     {},
     { label: 'Plus (+)', stroke: '#73bf69', width: 2.5, scale: 'kwh', spanGaps: false,

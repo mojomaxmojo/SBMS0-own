@@ -104,6 +104,11 @@ function renderLegendTable(el, series, calcs) {
 }
 
 /* ---- uPlot-Default-Optionen (Grafana-Dark-Look) ---- */
+// X-Achse je nach gezeigtem Zeitraum:
+//   <= 26 h     -> nur Uhrzeit (16:07)
+//   <= 14 Tage  -> Tag + Uhrzeit (07.11. 16:07)
+//   <= 730 Tage -> nur Datum (07.11.)
+//   laenger     -> Datum mit Jahr (07.11.25)
 function uplotBaseOpts(height, yFmt) {
   return {
     height,
@@ -111,7 +116,24 @@ function uplotBaseOpts(height, yFmt) {
     scales: { x: { time: true } },
     axes: [
       { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-        values: (u, vals) => vals.map((v) => new Date(v).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) },
+        values: (u, vals) => {
+          const x = u.data[0];
+          const spanH = x && x.length > 1 ? (x[x.length - 1] - x[0]) / 3600e3 : 0;
+          if (spanH <= 26) {
+            return vals.map((v) => new Date(v).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+          }
+          if (spanH <= 24 * 14) {
+            return vals.map((v) => {
+              const d = new Date(v);
+              return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' +
+                d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+            });
+          }
+          if (spanH <= 24 * 730) {
+            return vals.map((v) => new Date(v).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }));
+          }
+          return vals.map((v) => new Date(v).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }));
+        } },
       { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, values: yFmt },
     ],
   };

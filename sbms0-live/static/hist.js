@@ -217,6 +217,14 @@ const fmtKwh = (v) => v == null ? '–' : Number(v).toFixed(2) + ' kWh';
 const fmtPct = (v) => v == null ? '–' : Number(v).toFixed(0) + ' %';
 
 async function updateDaily() {
+  try {
+    await updateDailyInner();
+  } catch (e) {
+    $('dailylegend').innerHTML = '<span class="err-ts">Bilanz-Fehler: ' + (e.message || e) + '</span>';
+  }
+}
+
+async function updateDailyInner() {
   const s = await fetchSeries(Q_DAILY());
   const box = $('dailylegend');
   if (!s) { box.innerHTML = ''; return; }
@@ -265,9 +273,9 @@ async function updateDaily() {
   opts.series = [
     {},
     { label: 'Plus (+)', stroke: '#73bf69', width: 2.5, scale: 'kwh', spanGaps: false,
-      points: { show: true, size: 4, stroke: '#73bf69', fill: '#73bf69', space: 0 } },
+      points: { show: true, size: 4, stroke: '#73bf69', fill: '#73bf69' } },
     { label: 'Minus (–)', stroke: '#f2495c', width: 2.5, scale: 'kwh', spanGaps: false,
-      points: { show: true, size: 4, stroke: '#f2495c', fill: '#f2495c', space: 0 } },
+      points: { show: true, size: 4, stroke: '#f2495c', fill: '#f2495c' } },
     { label: 'SOC (Mittel)', stroke: '#5794f2', width: 1.5, scale: 'soc', spanGaps: true,
       points: { show: false } },
   ];
@@ -286,8 +294,14 @@ async function updateDaily() {
     { scale: 'soc', stroke: '#5794f2', grid: { show: false }, ticks: { stroke: '#2c3235' }, side: 1, size: 50,
       values: (u, vals) => vals.map((v) => Number(v).toFixed(0) + '%') },
   ];
-  if (!dailyPlot) dailyPlot = new uPlot(opts, data, $('dailychart'));
-  else { dailyPlot.scales = opts.scales; dailyPlot.setData(data, true); }
+  if (!dailyPlot) {
+    try {
+      dailyPlot = new uPlot(opts, data, $('dailychart'));
+    } catch (e) {
+      $('dailylegend').innerHTML = '<span class="err-ts">Chart-Fehler: ' + (e.message || e) + '</span>';
+      return;
+    }
+  } else { dailyPlot.scales = opts.scales; dailyPlot.setData(data, true); }
 
   $('daily-hint').textContent = hourly ? 'stündlich' : 'pro Tag';
   renderLegendTable(box, [

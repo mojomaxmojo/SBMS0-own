@@ -1,7 +1,7 @@
 /* SBMS0 PROGNOSE – 7-Tage-PV-Ertrag (Open-Meteo via /forecast) */
 'use strict';
 
-let fcPlot = null, fcDaysPlot = null;
+let fcDaysPlot = null;
 
 async function fetchJSON(url) {
   const r = await fetch(url);
@@ -27,40 +27,11 @@ async function load() {
     if (fc.error) throw new Error(fc.error);
 
     $('pv-headline').textContent =
-      `PV-Prognose (${fc.daily.length} Tage) – ${cfg.ort || ''} · ${fc.kwp} kWp · ${fc.tilt}° Neigung`;
-    $('fc-src-hint').textContent =
-      'Open-Meteo · P = kWp × Strahlung × ' + fc.pr.toFixed(2) + ' (Performance-Ratio)';
+      `PV-Prognose (${fc.daily.length} Tage) – ${cfg.ort || ''} · ${fc.kwp} kWp · ${fc.tilt}° Neigung · ` +
+      `Open-Meteo · P = kWp × Strahlung × ${fc.pr.toFixed(2)}`;
 
-    /* Chart: stündliche Watt-Werte */
-    const times = fc.times.map((t) => new Date(t.replace(' ', 'T')).getTime());
-    const data = [[], []];
-    for (let i = 0; i < times.length; i++) {
-      data[0].push(times[i]);
-      data[1].push(fc.watts[i] == null ? null : Number(fc.watts[i]));
-    }
-    const opts = uplotBaseOpts(300, (u, vals) => vals.map((v) => Math.round(v) + ' W'));
-    opts.width = $('fcchart').clientWidth;
-    opts.legend = { show: false };
-    opts.cursor = { x: true, y: false, points: { show: false } };
-    opts.series = [
-      {},
-      { label: 'Theoretischer Ertrag', stroke: '#73bf69', width: 1.5,
-        fill: 'rgba(115,191,105,0.15)', spanGaps: true },
-    ];
-    opts.axes = [
-      { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-        values: (u, vals) => vals.map((v) => {
-          const d = new Date(v);
-          return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' +
-            d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        }) },
-      { stroke: '#73bf69', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
-        values: (u, vals) => vals.map((v) => Math.round(v)) },
-    ];
-    if (fcPlot) { fcPlot.destroy(); fcPlot = null; }
-    new uPlot(opts, data, $('fcchart'));
-
-    /* Tages-Balkendiagramm mit kWh-Zahl über jedem Balken */    const dTimes = fc.daily.map((d) => new Date(d.date + 'T12:00:00').getTime());
+    /* Tages-Balkendiagramm mit kWh-Zahl über jedem Balken */
+    const dTimes = fc.daily.map((d) => new Date(d.date + 'T12:00:00').getTime());
     const dKwh = fc.daily.map((d) => Number(d.kwh));
     const dMax = Math.max(1, ...dKwh) * 1.2;
     const dayOpts = uplotBaseOpts(240, (u, vals) => vals.map((v) => Number(v).toFixed(0)));
@@ -109,10 +80,6 @@ async function load() {
     };
     if (fcDaysPlot) { fcDaysPlot.destroy(); fcDaysPlot = null; }
     fcDaysPlot = new uPlot(dayOpts, [dTimes, dKwh], $('fcchartdays'));
-
-    renderLegendTable($('fclegend'), [
-      { label: 'Theoretischer Ertrag', color: '#73bf69', values: data[1], fmt: fmtWFC },
-    ], ['Min', 'Mean', 'Max']);
 
     status.textContent = 'Daten OK';
     status.classList.remove('err');
@@ -173,12 +140,6 @@ async function loadRain() {
   }
 }
 
-function fmtWFC(v) {
-  if (v == null) return '–';
-  const a = Math.abs(v);
-  if (a >= 1000) return (v / 1000).toFixed(2) + ' kW';
-  return v.toFixed(0) + ' W';
-}
 
 load();
 loadRain();

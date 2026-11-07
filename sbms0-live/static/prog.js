@@ -152,6 +152,10 @@ let fcPastPlot = null;
 
 function drawBarPairs(u, colors) {
   // u.data: [x, vA, vB]; zeichnet je Tag zwei Balken mit Zahlen
+  const c = colors || {
+    aFill: 'rgba(115,191,105,0.75)', aText: '#73bf69',   // A = Prognose (grün)
+    bFill: 'rgba(87,148,242,0.75)', bText: '#5794f2',    // B = Real (blau)
+  };
   const ctx = u.ctx;
   const n = u.data[0].length;
   if (n < 1) return;
@@ -168,16 +172,16 @@ function drawBarPairs(u, colors) {
     const a = u.data[1][i], b = u.data[2][i];
     if (a != null) {
       const y = u.valToPos(a, 'kwhd', true);
-      ctx.fillStyle = colors.aFill;
+      ctx.fillStyle = c.aFill;
       ctx.fillRect(x - w - 1, y, w, Math.max(1, y0 - y));
-      ctx.fillStyle = colors.aText;
+      ctx.fillStyle = c.aText;
       ctx.fillText(a.toFixed(2), x - w / 2 - 1, y - 4);
     }
     if (b != null) {
       const y = u.valToPos(b, 'kwhd', true);
-      ctx.fillStyle = colors.bFill;
+      ctx.fillStyle = c.bFill;
       ctx.fillRect(x + 1, y, w, Math.max(1, y0 - y));
-      ctx.fillStyle = colors.bText;
+      ctx.fillStyle = c.bText;
       ctx.fillText(b.toFixed(2), x + w / 2 + 1, y - 4);
     }
   }

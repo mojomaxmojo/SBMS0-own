@@ -216,27 +216,6 @@ let dailyPlot = null;
 const fmtKwh = (v) => v == null ? '–' : Number(v).toFixed(2) + ' kWh';
 const fmtPct = (v) => v == null ? '–' : Number(v).toFixed(0) + ' %';
 
-function drawDailyBars(u) {
-  const ctx = u.ctx;
-  const n = u.data[0].length;
-  if (n < 1) return;
-  const step = n > 1 ? Math.abs(u.valToPos(u.data[0][1], 'x', true) - u.valToPos(u.data[0][0], 'x', true)) : u.bbox.w;
-  const w = Math.max(3, Math.min(step * 0.72, 60));
-  const y0 = u.valToPos(0, 'kwh', true);   // Nulllinie auf der kWh-Skala
-  ctx.save();
-  // Tages-Bilanz: grün = Plus-Tag (Überschuss), rot = Minus-Tag (Defizit)
-  for (let i = 0; i < u.data[1].length; i++) {
-    const v = u.data[1][i];
-    if (v == null) continue;
-    const x = u.valToPos(u.data[0][i], 'x', true);
-    const y = u.valToPos(v, 'kwh', true);
-    ctx.fillStyle = v >= 0 ? 'rgba(115,191,105,0.8)' : 'rgba(242,73,92,0.8)';
-    const top = v >= 0 ? y : y0;
-    ctx.fillRect(x - w / 2, top, w, Math.max(1, Math.abs(y0 - y)));
-  }
-  ctx.restore();
-}
-
 async function updateDaily() {
   const s = await fetchSeries(Q_DAILY());
   const box = $('dailylegend');
@@ -260,16 +239,19 @@ async function updateDaily() {
   const keys = [...buckets.keys()].sort((a, b) => a - b);
   if (!keys.length) { box.innerHTML = ''; return; }
 
-  const data = [[], [], []];
+  const data = [[], [], [], []];
   let maxAbs = 0.1;
+  const nets = [];
   for (const t of keys) {
     const b = buckets.get(t);
     // b.bat = Summe der Stundenmittel (W) -> jedes Stundenmittel gilt 1 h -> Wh
     const net = b.bat / 1000;                   // Tagesbilanz kWh (+ Überschuss / – Defizit)
     const soc = b.socN ? b.soc / b.socN : null;
     data[0].push(t);
-    data[1].push(Number(net.toFixed(2)));       // Bilanz-Balken
-    data[2].push(soc == null ? null : Number(soc.toFixed(1)));
+    data[1].push(net >= 0 ? Number(net.toFixed(2)) : null);   // Plus-Kurve (grün)
+    data[2].push(net < 0 ? Number(net.toFixed(2)) : null);    // Minus-Kurve (rot)
+    data[3].push(soc == null ? null : Number(soc.toFixed(1)));
+    nets.push(net);
     maxAbs = Math.max(maxAbs, Math.abs(net));
   }
   // Y-Achse symmetrisch, Nulllinie immer sichtbar
@@ -279,11 +261,13 @@ async function updateDaily() {
   const opts = uplotBaseOpts(260, (u, vals) => vals.map((v) => Number(v).toFixed(1) + ' kWh'));
   opts.width = $('dailychart').clientWidth;
   opts.legend = { show: false };
-  opts.cursor = { x: true, y: false, points: { show: false } };
-  opts.hooks = { draw: [drawDailyBars] };
+  opts.cursor = { x: true, y: false, points: { show: true, size: 5, stroke: '#fff', fill: '#fff' } };
   opts.series = [
     {},
-    { label: 'Bilanz (Netto)', show: false, scale: 'kwh' },  // Balken (via draw-Hook)
+    { label: 'Plus (+)', stroke: '#73bf69', width: 2.5, scale: 'kwh', spanGaps: false,
+      points: { show: true, size: 4, stroke: '#73bf69', fill: '#73bf69', space: 0 } },
+    { label: 'Minus (–)', stroke: '#f2495c', width: 2.5, scale: 'kwh', spanGaps: false,
+      points: { show: true, size: 4, stroke: '#f2495c', fill: '#f2495c', space: 0 } },
     { label: 'SOC (Mittel)', stroke: '#5794f2', width: 1.5, scale: 'soc', spanGaps: true,
       points: { show: false } },
   ];
@@ -307,9 +291,10 @@ async function updateDaily() {
 
   $('daily-hint').textContent = hourly ? 'stündlich' : 'pro Tag';
   renderLegendTable(box, [
-    { label: 'Bilanz pro Tag (+/–)', color: '#73bf69', values: data[1],
+    { label: 'Bilanz pro Tag (+/–)', color: '#73bf69',
+      values: nets.map((v) => v >= 0 ? v : v),
       fmt: (v) => v == null ? '–' : (v >= 0 ? '+' : '') + fmtKwh(v) },
-    { label: 'SOC (Mittel)', color: '#5794f2', values: data[2], fmt: fmtPct },
+    { label: 'SOC (Mittel)', color: '#5794f2', values: data[3], fmt: fmtPct },
   ], ['Min', 'Mean', 'Max']);
 }
 

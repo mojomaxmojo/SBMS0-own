@@ -8,8 +8,10 @@
     "tilt:               Modulneigung in Grad (0 = flach)",
     "azimuth:            Ausrichtung in Grad (180 = Sued)",
     "performance_ratio:  Systemfaktor 0.5-0.95 (Verschattung, Temp, WR, Schmutz)",
-    "                    0.85 = typisch fuer 0-Grad-Flachdach ohne Verschattung",
+    "                    0.75 = pessimistisch-realistisch (Flachdach, Hitze, Staub)",
+    "                    0.85 = ideal-optimistisch; mit 'ist-vs-prognose' kalibrieren",
     "service:            open-meteo (einzige unterstuetzte Quelle)",
+    "timezone:           lokale Zeitzone fuer Tagesgrenzen des Ist-Ertrags",
     "ort:                frei text (nur Anzeige)"
   ],
 
@@ -19,7 +21,8 @@
   "kwp": 2.25,
   "tilt": 0,
   "azimuth": 180,
-  "performance_ratio": 0.85,
+  "performance_ratio": 0.75,
+  "timezone": "Europe/Lisbon",
   "forecast_days": 7,
   "service": "open-meteo"
 }

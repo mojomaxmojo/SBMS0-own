@@ -33,7 +33,7 @@ PV_PATH = os.path.join(
 
 _PV_FALLBACK = {
     'ort': 'unbekannt', 'latitude': 37.169, 'longitude': -7.491,
-    'kwp': 2.25, 'tilt': 0, 'azimuth': 180, 'performance_ratio': 0.85,
+    'kwp': 2.25, 'tilt': 0, 'azimuth': 180, 'performance_ratio': 0.75,
     'forecast_days': 7, 'service': 'open-meteo',
 }
 
@@ -102,6 +102,92 @@ def prognose():
     return send_from_directory('templates', 'prognose.html')
 
 
+@app.route('/pvcompare')
+def pvcompare():
+    """Ist-vs-Prognose: taeglicher REAL-Ertrag (InfluxDB, raw_1s) vs.
+    Open-Meteo-Prognose fuer die letzten 7 Tage (+ heute)."""
+    import json as _json
+    from datetime import datetime, timedelta, timezone
+
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    kwp = float(cfg.get('kwp', 0) or 0)
+    pr = float(cfg.get('performance_ratio', 0.75) or 0.75)
+
+    # --- Open-Meteo mit past_days=7: stündliche GHI, Rückrechnung ---
+    try:
+        r = requests.get(
+            'https://api.open-meteo.com/v1/forecast',
+            params={
+                'latitude': cfg.get('latitude'),
+                'longitude': cfg.get('longitude'),
+                'hourly': 'shortwave_radiation',
+                'past_days': 7, 'forecast_days': 1,
+                'timezone': 'Europe/Berlin',
+                'models': 'best_match',
+            },
+            timeout=15,
+        )
+        r.raise_for_status()
+        raw = r.json()
+        hourly = raw['hourly']
+        times = hourly['time']
+        ghi = hourly['shortwave_radiation']
+    except (requests.RequestException, ValueError, KeyError) as e:
+        return jsonify({'error': 'Open-Meteo nicht erreichbar: ' + str(e)[:150]}), 502
+
+    # stündliche Prognose-kWh auf lokale Tage aufsummieren (Europe/Berlin-
+    # Zeitstempel von Open-Meteo, ohne TZ-Suffix -> naiv parsen ok)
+    fc_by_day = {}
+    for t, g in zip(times, ghi):
+        if g is None:
+            continue
+        day = t[:10]
+        # kWh je Stunde = kWp * (GHI/1000) * PR
+        fc_by_day[day] = fc_by_day.get(day, 0.0) + kwp * (g / 1000.0) * pr
+
+    # --- REAL-Ertrag aus InfluxDB: stündliche kWh (raw_1s) ---
+    # Europe/Lisbon (Portugal) via zoneinfo; Fallback: UTC
+    try:
+        from zoneinfo import ZoneInfo
+        LOCAL_TZ = ZoneInfo(cfg.get('timezone', 'Europe/Lisbon'))
+    except Exception:
+        LOCAL_TZ = timezone.utc
+
+    real_by_day = {}
+    try:
+        r2 = requests.get(
+            INFLUX_URL,
+            params={'db': INFLUX_DB, 'epoch': 'ms', 'throttle': '0',
+                    'q': 'SELECT sum("PV Power W")/3600/1000 AS kwh FROM "raw_1s"."SBMS_Metrics" '
+                         "WHERE \"Name\" = 'SBMS0a' AND time > now() - 8d GROUP BY time(1h) fill(null)"},
+            timeout=30,
+        )
+        r2.raise_for_status()
+        s = r2.json()['results'][0]['series'][0]
+        for ts, kwh in s['values']:
+            if kwh is None:
+                continue
+            day = datetime.fromtimestamp(ts / 1000, tz=LOCAL_TZ).strftime('%Y-%m-%d')
+            real_by_day[day] = round(real_by_day.get(day, 0.0) + float(kwh), 3)
+    except (requests.RequestException, ValueError, KeyError, IndexError):
+        pass  # Influx-Fehler: real bleibt leer, Seite zeigt nur Prognose
+
+    # --- Zusammenführen: letzte 7 lokale Tage + heute ---
+    today_local = datetime.now(LOCAL_TZ).strftime('%Y-%m-%d')
+    days = sorted(set(list(fc_by_day.keys()) + list(real_by_day.keys())))
+    out = []
+    for day in days:
+        if day > today_local:
+            continue
+        fc_kwh = round(fc_by_day.get(day, 0.0), 2)
+        re_kwh = real_by_day.get(day)
+        diff = None
+        if re_kwh is not None and fc_kwh > 0:
+            diff = round((re_kwh - fc_kwh) / fc_kwh * 100, 0)
+        out.append({'date': day, 'forecast': fc_kwh, 'real': re_kwh, 'diff_pct': diff})
+
+    return jsonify({'pr': pr, 'kwp': kwp, 'timezone': str(LOCAL_TZ), 'days': out[-8:]})
 @app.route('/pvconfig')
 def pvconfig():
     """Editierbare PV-Prognose-Konfiguration (pv.json)."""

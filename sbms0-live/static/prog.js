@@ -79,6 +79,35 @@ async function load() {
     status.classList.add('err');
     $('fcdays').innerHTML = `<span class="err-ts">Prognose-Fehler: ${e.message || e}</span>`;
   }
+
+  /* --- Ist vs. Prognose (letzte 7 Tage) --- */
+  try {
+    const cmp = await fetchJSON('/pvcompare');
+    if (cmp.error) throw new Error(cmp.error);
+    $('cmp-hint').textContent = `PR ${cmp.pr.toFixed(2)} · Zeitzone ${cmp.timezone}`;
+    let html = '<table class="legend-table"><tr><th>Tag</th><th>Prognose</th><th>Real (Influx)</th><th>Abw.</th></tr>';
+    let sumF = 0, sumR = 0, n = 0;
+    for (const d of cmp.days) {
+      const dt = new Date(d.date + 'T12:00:00');
+      const label = dt.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+      const real = d.real == null ? '–' : d.real.toFixed(2) + ' kWh';
+      const diff = d.diff_pct == null ? '–'
+        : `<span style="color:${d.diff_pct >= 0 ? 'var(--green)' : 'var(--red)'}">${d.diff_pct > 0 ? '+' : ''}${d.diff_pct}%</span>`;
+      html += `<tr><td>${label}</td><td>${d.forecast.toFixed(2)} kWh</td><td>${real}</td><td>${diff}</td></tr>`;
+      if (d.real != null) { sumF += d.forecast; sumR += d.real; n++; }
+    }
+    html += '</table>';
+    if (n > 0) {
+      const dev = ((sumR - sumF) / sumF * 100).toFixed(0);
+      const color = dev >= 0 ? 'var(--green)' : 'var(--red)';
+      html += `<div class="dim" style="padding:4px 2px">Summe 7 Tage: Prognose <b>${sumF.toFixed(1)} kWh</b> · ` +
+        `Real <b>${sumR.toFixed(1)} kWh</b> · Abweichung <b style="color:${color}">${dev > 0 ? '+' : ''}${dev}%</b>` +
+        ` → <span class="dim">pv.json: performance_ratio ${cmp.pr.toFixed(2)} ${dev < -5 ? 'senken' : dev > 5 ? 'erhöhen' : 'passt'}</span></div>`;
+    }
+    $('cmp-table').innerHTML = html;
+  } catch (e) {
+    $('cmp-table').innerHTML = `<span class="err-ts">Vergleich-Fehler: ${e.message || e}</span>`;
+  }
 }
 
 function fmtWFC(v) {

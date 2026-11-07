@@ -1,6 +1,8 @@
 /* SBMS0 PROGNOSE – 7-Tage-PV-Ertrag (Open-Meteo via /forecast) */
 'use strict';
 
+let fcPlot = null, fcDaysPlot = null;
+
 async function fetchJSON(url) {
   const r = await fetch(url);
   if (!r.ok) {
@@ -55,18 +57,58 @@ async function load() {
       { stroke: '#73bf69', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
         values: (u, vals) => vals.map((v) => Math.round(v)) },
     ];
+    if (fcPlot) { fcPlot.destroy(); fcPlot = null; }
     new uPlot(opts, data, $('fcchart'));
 
-    /* Tages-Kacheln */
-    const days = fc.daily.map((d) => {
-      const dt = new Date(d.date + 'T12:00:00');
-      const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
-      const cls = d.kwh >= 8 ? 'good' : d.kwh >= 4 ? 'mid' : 'poor';
-      return `<div class="fc-day"><div class="fc-datel">${label}</div>` +
-        `<div class="fc-kwh ${cls}">${d.kwh.toFixed(2)} kWh</div>` +
-        `<div class="fc-sub">${d.sunrise ? d.sunrise.slice(11, 16) : ''} – ${d.sunset ? d.sunset.slice(11, 16) : ''}</div></div>`;
-    }).join('');
-    $('fcdays').innerHTML = days;
+    /* Tages-Balkendiagramm mit kWh-Zahl über jedem Balken */    const dTimes = fc.daily.map((d) => new Date(d.date + 'T12:00:00').getTime());
+    const dKwh = fc.daily.map((d) => Number(d.kwh));
+    const dMax = Math.max(1, ...dKwh) * 1.2;
+    const dayOpts = uplotBaseOpts(240, (u, vals) => vals.map((v) => Number(v).toFixed(0)));
+    dayOpts.width = $('fcchartdays').clientWidth;
+    dayOpts.legend = { show: false };
+    dayOpts.cursor = { x: true, y: false, points: { show: false } };
+    dayOpts.scales = { x: { time: true }, kwhd: { auto: false, range: [0, dMax] } };
+    dayOpts.series = [
+      {},
+      { label: 'kWh', show: false, scale: 'kwhd' },
+    ];
+    dayOpts.axes = [
+      { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
+        values: (u, vals) => vals.map((v) => new Date(v).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
+      { scale: 'kwhd', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
+        values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
+    ];
+    dayOpts.hooks = {
+      draw: [
+        (u) => {
+          const ctx = u.ctx;
+          const n = u.data[0].length;
+          if (n < 1) return;
+          const step = n > 1
+            ? Math.abs(u.valToPos(u.data[0][1], 'x', true) - u.valToPos(u.data[0][0], 'x', true))
+            : u.bbox.w;
+          const w = Math.max(4, Math.min(step * 0.6, 80));
+          const y0 = u.valToPos(0, 'kwhd', true);
+          ctx.save();
+          for (let i = 0; i < n; i++) {
+            const v = u.data[1][i];
+            if (v == null) continue;
+            const x = u.valToPos(u.data[0][i], 'x', true);
+            const y = u.valToPos(v, 'kwhd', true);
+            ctx.fillStyle = 'rgba(115,191,105,0.75)';
+            ctx.fillRect(x - w / 2, y, w, Math.max(1, y0 - y));
+            // kWh-Zahl über dem Balken
+            ctx.fillStyle = v >= 8 ? '#73bf69' : v >= 4 ? '#f2cc0c' : '#ff9830';
+            ctx.font = 'bold 12px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(v.toFixed(2), x, y - 4);
+          }
+          ctx.restore();
+        },
+      ],
+    };
+    if (fcDaysPlot) { fcDaysPlot.destroy(); fcDaysPlot = null; }
+    fcDaysPlot = new uPlot(dayOpts, [dTimes, dKwh], $('fcchartdays'));
 
     renderLegendTable($('fclegend'), [
       { label: 'Theoretischer Ertrag', color: '#73bf69', values: data[1], fmt: fmtWFC },
@@ -77,7 +119,7 @@ async function load() {
   } catch (e) {
     status.textContent = 'FEHLER: ' + (e.message || e);
     status.classList.add('err');
-    $('fcdays').innerHTML = `<span class="err-ts">Prognose-Fehler: ${e.message || e}</span>`;
+    $('fcchartdays').innerHTML = `<span class="err-ts">Prognose-Fehler: ${e.message || e}</span>`;
   }
 
   /* --- Ist vs. Prognose (letzte 7 Tage) --- */

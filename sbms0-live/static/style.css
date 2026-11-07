@@ -81,10 +81,10 @@ body {
 /* Zeile 2: Leistung links 50%, Time+Flags rechts 50% */
 .panel.stat-card { grid-column: span 12; }
 
-/* Calc-Seite: Energy/Flow und Prognosen je 50% */
-#energy-panel, #flow-panel { grid-column: span 12; }
-#ttf-panel, #tte-panel { grid-column: span 12; }
-#batt-panel, #cells-verlauf-panel { grid-column: span 24; }
+/* Calc-Seite: Energy/Flow und Prognosen je 50% (nur CALC – HISTORIE-Flow ist volle Breite) */
+body.calc #energy-panel, body.calc #flow-panel { grid-column: span 12; }
+body.calc #ttf-panel, body.calc #tte-panel { grid-column: span 12; }
+body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 
 /* Zell-Farb-Legende */
 .cell-legend {

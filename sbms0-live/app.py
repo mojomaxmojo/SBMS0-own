@@ -165,10 +165,14 @@ def pvcompare():
 
     real_by_day = {}
     try:
+        # WICHTIG: mean() je Stunde statt sum() der Punkte – der Logger
+        # schreibt nur bei frischen Serial-Daten (~0.7 Hz), eine Punktsumme
+        # unterschlaege die Pausen als "keine Energie". Das Stundenmittel ist
+        # repraesentativ, mean(W) * 1 h = Wh -> /1000 kWh.
         r2 = requests.get(
             INFLUX_URL,
             params={'db': INFLUX_DB, 'epoch': 'ms', 'throttle': '0',
-                    'q': 'SELECT sum("PV Power W")/3600/1000 AS kwh FROM "raw_1s"."SBMS_Metrics" '
+                    'q': 'SELECT mean("PV Power W")/1000 AS kwh FROM "raw_1s"."SBMS_Metrics" '
                          "WHERE \"Name\" = 'SBMS0a' AND time > now() - 8d GROUP BY time(1h) fill(null)"},
             timeout=30,
         )

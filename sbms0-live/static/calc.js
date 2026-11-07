@@ -5,12 +5,15 @@
 const _startOfDay = new Date(); _startOfDay.setHours(0, 0, 0, 0);
 const FROM_TODAY = `time > ${Math.round(_startOfDay.getTime() * 1e6)}`;
 
-/* ---------- Energie heute (Bargauge links) ---------- */
+// WICHTIG: mean() statt sum() – der Logger schreibt nur bei frischen Serial-Daten
+// (~0.7 Hz), eine Punktsumme wuerde Pausen als "keine Energie" zaehlen.
+// kWh = mean(W) × Stunden-seit-Mitternacht / 1000 (Multiplikation in updateEnergy)
+const _HOURS_TODAY = () => (Date.now() - _startOfDay.getTime()) / 3600e3;
 const Q_ENERGY = [
-  { alias: 'Erzeugt',   color: '#73bf69', q: `SELECT sum("PV Power W") / 3600 / 1000 FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}` },
-  { alias: 'Geladen',   color: '#f2cc0c', q: `SELECT sum("Battery Power W") / 3600 / 1000 FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND "Battery Power W" > 0 AND ${FROM_TODAY}` },
-  { alias: 'Entladen',  color: '#f2495c', q: `SELECT sum("Battery Power W") / 3600 / 1000 * -1 FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND "Battery Power W" < 0 AND ${FROM_TODAY}` },
-  { alias: 'Verbraucht',color: '#ff9830', q: `SELECT sum("Consumption Power W") / 3600 / 1000 FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}` },
+  { alias: 'Erzeugt',   color: '#73bf69', q: `SELECT mean("PV Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}` },
+  { alias: 'Geladen',   color: '#f2cc0c', q: `SELECT mean("Battery Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND "Battery Power W" > 0 AND ${FROM_TODAY}` },
+  { alias: 'Entladen',  color: '#f2495c', q: `SELECT mean("Battery Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND "Battery Power W" < 0 AND ${FROM_TODAY}` },
+  { alias: 'Verbraucht',color: '#ff9830', q: `SELECT mean("Consumption Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}` },
 ];
 
 // Statische Bar-Struktur (Label + LED-Bar + Wert), Farben wie Grafana-Overrides
@@ -39,8 +42,9 @@ async function updateEnergy() {
       // Erster Wert != 'time' (Influx liefert Zeitstempel als erste Spalte)
       let v = null;
       if (row) for (const k in row) { if (k !== 'time') { v = row[k]; break; } }
-      if (v == null) { b.val.textContent = '–'; continue; }
-      const num = Number(v);
+    if (v == null) { b.val.textContent = '–'; continue; }
+    let num = Number(v) * _HOURS_TODAY() / 1000;   // mean(W) × h / 1000 = kWh
+    if (b.alias === 'Entladen') num = Math.abs(num); // Werte sind negativ geloggt
       setLedBar(b.leds, 0, 7, [[0, [0x73,0xbf,0x69]], [7, [0xf2,0x49,0x5c]]], Math.min(num, 7),
         () => hexToRgbArr(b.color));
       b.val.textContent = fmtKwh(num);

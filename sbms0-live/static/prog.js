@@ -136,11 +136,16 @@ async function load() {
     }
     html += '</table>';
     if (n > 0) {
-      const dev = ((sumR - sumF) / sumF * 100).toFixed(0);
+      const dev = (sumR - sumF) / sumF * 100;   // % Abweichung (real vs. prognose)
       const color = dev >= 0 ? 'var(--green)' : 'var(--red)';
+      const prNew = cmp.pr * (1 + dev / 100);
+      const prNewStr = Math.max(0.1, Math.min(0.95, prNew)).toFixed(2);
+      const tip = Math.abs(dev) < 5
+        ? 'passt'
+        : `neuer Wert: ${prNewStr}`;
       html += `<div class="dim" style="padding:4px 2px">Summe 7 Tage: Prognose <b>${sumF.toFixed(1)} kWh</b> · ` +
-        `Real <b>${sumR.toFixed(1)} kWh</b> · Abweichung <b style="color:${color}">${dev > 0 ? '+' : ''}${dev}%</b>` +
-        ` → <span class="dim">pv.json: performance_ratio ${cmp.pr.toFixed(2)} ${dev < -5 ? 'senken' : dev > 5 ? 'erhöhen' : 'passt'}</span></div>`;
+        `Real <b>${sumR.toFixed(1)} kWh</b> · Abweichung <b style="color:${color}">${dev > 0 ? '+' : ''}${dev.toFixed(0)}%</b>` +
+        ` → <span class="dim">pv.json: performance_ratio ${cmp.pr.toFixed(2)} → ${tip}</span></div>`;
     }
     $('cmp-table').innerHTML = html;
   } catch (e) {

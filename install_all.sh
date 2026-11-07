@@ -102,6 +102,7 @@ if [ "$SCRIPT_DIR" != "$SBMS_DIR" ]; then
   mkdir -p "$SBMS_DIR"
   cp -f "$SCRIPT_DIR/sbms0-LiveLogger.py" "$SBMS_DIR/"
   cp -f "$SCRIPT_DIR/alarm.json" "$SBMS_DIR/" 2>/dev/null || true
+  cp -f "$SCRIPT_DIR/pv.json" "$SBMS_DIR/" 2>/dev/null || true
 fi
 
 if id "$RUN_USER" &>/dev/null; then

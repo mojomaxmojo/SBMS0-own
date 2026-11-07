@@ -27,6 +27,29 @@ INFLUX_DB = os.environ.get('SBMS_INFLUX_DB', 'SBMS')
 ALARM_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'alarm.json')
 
+# pv.json dito: PV-Prognose-Konfiguration (Position, kWp, Neigung ...)
+PV_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pv.json')
+
+_PV_FALLBACK = {
+    'ort': 'unbekannt', 'latitude': 37.169, 'longitude': -7.491,
+    'kwp': 2.25, 'tilt': 0, 'azimuth': 180, 'performance_ratio': 0.85,
+    'forecast_days': 7, 'service': 'open-meteo',
+}
+
+
+def load_json_cfg(path, fallback):
+    try:
+        import json
+        with open(path, 'r', encoding='utf-8') as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return fallback
+
+# Einfacher Prozess-Cache fuer die Open-Meteo-Prognose (30 min)
+_FC_CACHE = {'ts': 0, 'data': None}
+FC_TTL = 30 * 60
+
 _ALARM_FALLBACK = {
     'banner_titel': 'BATTERIE-FEHLER',
     'error_flags': ['UVLK', 'OVLK', 'COC', 'DOC', 'DSC', 'OPEN', 'CELF', 'LVC'],
@@ -72,6 +95,95 @@ def calc():
 @app.route('/hist')
 def hist():
     return send_from_directory('templates', 'hist.html')
+
+
+@app.route('/prognose')
+def prognose():
+    return send_from_directory('templates', 'prognose.html')
+
+
+@app.route('/pvconfig')
+def pvconfig():
+    """Editierbare PV-Prognose-Konfiguration (pv.json)."""
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    return jsonify(cfg)
+
+
+@app.route('/forecast')
+def forecast():
+    """PV-Prognose (Open-Meteo): stündliche Watt + Tages-kWh, 7 Tage.
+    Ergebnis wird 30 min prozessweit gecacht (spart Requests, Rate-Limits)."""
+    import time as _time
+    import json as _json
+
+    now = _time.time()
+    if _FC_CACHE['data'] is not None and now - _FC_CACHE['ts'] < FC_TTL:
+        return jsonify(_FC_CACHE['data'])
+
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    days = min(int(cfg.get('forecast_days', 7) or 7), 16)
+    kwp = float(cfg.get('kwp', 0) or 0)
+    pr = float(cfg.get('performance_ratio', 0.85) or 0.85)
+
+    try:
+        r = requests.get(
+            'https://api.open-meteo.com/v1/forecast',
+            params={
+                'latitude': cfg.get('latitude'),
+                'longitude': cfg.get('longitude'),
+                'hourly': 'shortwave_radiation',
+                'daily': 'shortwave_radiation_sum,sunrise,sunset',
+                'forecast_days': days,
+                'timezone': 'Europe/Berlin',
+                'models': 'best_match',
+            },
+            timeout=15,
+        )
+        r.raise_for_status()
+        raw = r.json()
+    except (requests.RequestException, ValueError) as e:
+        return jsonify({'error': 'Open-Meteo nicht erreichbar: ' + str(e)[:150]}), 502
+
+    try:
+        hourly = raw['hourly']
+        times = hourly['time']                       # lokale ISO-Zeit (Europe/Berlin)
+        ghi = hourly['shortwave_radiation']          # W/m2 horizontal (0-Grad-Dach!)
+
+        # P(W) = kWp * GHI(W/m2) / 1000 * PR * 1000  ->  kWp * GHI * PR
+        watts = [
+            round(kwp * (g or 0) * pr, 1) if g is not None else None
+            for g in ghi
+        ]
+
+        # Tages-Summen kWh: GHI Wh/m2 je Stunde * kWp/1000 * PR -> kWh je Stunde
+        daily = []
+        for i, d in enumerate(raw.get('daily', {}).get('time', [])):
+            start = i * 24
+            stop = start + 24
+            seg = [g for g in ghi[start:stop] if g is not None]
+            kwh = round(kwp * (sum(seg) / 1000.0) * pr, 2) if seg else 0.0
+            daily.append({
+                'date': d,
+                'kwh': kwh,
+                'kwh_m2': raw.get('daily', {}).get('shortwave_radiation_sum', [None] * (i + 1))[i],
+                'sunrise': raw.get('daily', {}).get('sunrise', [''] * (i + 1))[i],
+                'sunset': raw.get('daily', {}).get('sunset', [''] * (i + 1))[i],
+            })
+
+        data = {
+            'ort': cfg.get('ort'),
+            'kwp': kwp, 'pr': pr, 'tilt': cfg.get('tilt'),
+            'unit': 'W', 'times': times, 'watts': watts, 'daily': daily,
+            'fetched_at': int(now),
+        }
+    except (KeyError, TypeError, ValueError) as e:
+        return jsonify({'error': 'Unerwartetes Open-Meteo-Format: ' + str(e)[:150]}), 502
+
+    _FC_CACHE['ts'] = now
+    _FC_CACHE['data'] = data
+    return jsonify(data)
 
 
 @app.route('/alarm')

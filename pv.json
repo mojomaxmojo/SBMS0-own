@@ -1,0 +1,25 @@
+{
+  "_hinweis": [
+    "PV-Prognose-Konfiguration (Open-Meteo). MANUELL editierbar.",
+    "Die Web-App liest diese Datei bei jeder Prognose-Abfrage neu.",
+    "",
+    "latitude/longitude: Position der Anlage (Dezimalgrad)",
+    "kwp:                Peak-Leistung der Anlage in kWp",
+    "tilt:               Modulneigung in Grad (0 = flach)",
+    "azimuth:            Ausrichtung in Grad (180 = Sued)",
+    "performance_ratio:  Systemfaktor 0.5-0.95 (Verschattung, Temp, WR, Schmutz)",
+    "                    0.85 = typisch fuer 0-Grad-Flachdach ohne Verschattung",
+    "service:            open-meteo (einzige unterstuetzte Quelle)",
+    "ort:                frei text (nur Anzeige)"
+  ],
+
+  "ort": "Altura, Portugal",
+  "latitude": 37.169,
+  "longitude": -7.491,
+  "kwp": 2.25,
+  "tilt": 0,
+  "azimuth": 180,
+  "performance_ratio": 0.85,
+  "forecast_days": 7,
+  "service": "open-meteo"
+}

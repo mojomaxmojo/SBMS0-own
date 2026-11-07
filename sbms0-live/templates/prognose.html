@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SBMS0 PROGNOSE</title>
+<link rel="stylesheet" href="/static/uplot.min.css">
+<link rel="stylesheet" href="/static/style.css?v=17">
+</head>
+<body>
+
+<div id="topbar">
+  <div class="nav-links">
+    <a href="/">START</a>
+    <a href="/live">LIVE</a>
+    <a href="/calc">BERECHNUNGEN</a>
+    <a href="/hist">HISTORIE</a>
+    <a href="/prognose" class="active">PROGNOSE</a>
+  </div>
+  <div class="right">
+    <span id="status">verbinde…</span>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div class="row-title" id="pv-headline">PV-Prognose (7 Tage) – lade…</div>
+
+<div class="grid">
+  <div class="panel" id="fc-chart-panel">
+    <div class="panel-title">Theoretischer Ertrag (Stunden-Werte, W) <span class="override-hint" id="fc-src-hint"></span></div>
+    <div id="fcchart"></div>
+    <div id="fclegend"></div>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+  <div class="panel" id="fc-days-panel">
+    <div class="panel-title">Tages-Erträge (kWh)</div>
+    <div id="fcdays" class="fc-days">lade…</div>
+  </div>
+</div>
+
+<script src="/static/uplot.iife.min.js"></script>
+<script src="/static/shared.js?v=3"></script>
+<script src="/static/prog.js?v=1"></script>
+</body>
+</html>

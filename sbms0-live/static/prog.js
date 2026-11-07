@@ -23,17 +23,24 @@ async function load() {
   const status = $('status');
   try {
     status.textContent = 'lade…';
-    const [cfg, fc] = await Promise.all([fetchJSON('/pvconfig'), fetchJSON('/forecast')]);
+    const [cfg, fc, cmp] = await Promise.all([
+      fetchJSON('/pvconfig'), fetchJSON('/forecast'), fetchJSON('/pvcompare'),
+    ]);
     if (fc.error) throw new Error(fc.error);
 
     $('pv-headline').textContent =
       `PV-Prognose (${fc.daily.length} Tage) – ${cfg.ort || ''} · ${fc.kwp} kWp · ${fc.tilt}° Neigung · ` +
       `Open-Meteo · P = kWp × Strahlung × ${fc.pr.toFixed(2)}`;
 
-    /* Tages-Balkendiagramm mit kWh-Zahl über jedem Balken */
+    /* Tages-Balkendiagramm: Prognose + Real nebeneinander, kWh-Zahl oben */
+    const realByDate = {};
+    if (cmp && cmp.days) {
+      for (const d of cmp.days) if (d.real != null) realByDate[d.date] = Number(d.real);
+    }
     const dTimes = fc.daily.map((d) => new Date(d.date + 'T12:00:00').getTime());
     const dKwh = fc.daily.map((d) => Number(d.kwh));
-    const dMax = Math.max(1, ...dKwh) * 1.2;
+    const dReal = fc.daily.map((d) => realByDate[d.date] != null ? Number(realByDate[d.date]) : null);
+    const dMax = Math.max(1, ...dKwh, ...dReal.filter((v) => v != null)) * 1.2;
     const dayOpts = uplotBaseOpts(240, (u, vals) => vals.map((v) => Number(v).toFixed(0)));
     dayOpts.width = $('fcchartdays').clientWidth;
     dayOpts.legend = { show: false };
@@ -41,7 +48,8 @@ async function load() {
     dayOpts.scales = { x: { time: true }, kwhd: { auto: false, range: [0, dMax] } };
     dayOpts.series = [
       {},
-      { label: 'kWh', show: false, scale: 'kwhd' },
+      { label: 'Prognose', show: false, scale: 'kwhd' },
+      { label: 'Real', show: false, scale: 'kwhd' },
     ];
     dayOpts.axes = [
       { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
@@ -58,28 +66,40 @@ async function load() {
           const step = n > 1
             ? Math.abs(u.valToPos(u.data[0][1], 'x', true) - u.valToPos(u.data[0][0], 'x', true))
             : u.bbox.w;
-          const w = Math.max(4, Math.min(step * 0.6, 80));
+          const w = Math.max(3, Math.min(step * 0.28, 50));  // Balkenbreite (2 Balken + Lücke)
           const y0 = u.valToPos(0, 'kwhd', true);
           ctx.save();
           for (let i = 0; i < n; i++) {
-            const v = u.data[1][i];
-            if (v == null) continue;
             const x = u.valToPos(u.data[0][i], 'x', true);
-            const y = u.valToPos(v, 'kwhd', true);
-            ctx.fillStyle = 'rgba(115,191,105,0.75)';
-            ctx.fillRect(x - w / 2, y, w, Math.max(1, y0 - y));
-            // kWh-Zahl über dem Balken
-            ctx.fillStyle = v >= 8 ? '#73bf69' : v >= 4 ? '#f2cc0c' : '#ff9830';
-            ctx.font = 'bold 12px system-ui, sans-serif';
+            const fcV = u.data[1][i], reV = u.data[2][i];
+            ctx.font = 'bold 11px system-ui, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(v.toFixed(2), x, y - 4);
+            // Prognose-Balken (links, grün)
+            if (fcV != null) {
+              const y = u.valToPos(fcV, 'kwhd', true);
+              ctx.fillStyle = 'rgba(115,191,105,0.75)';
+              ctx.fillRect(x - w - 1, y, w, Math.max(1, y0 - y));
+              ctx.fillStyle = '#73bf69';
+              ctx.fillText(fcV.toFixed(2), x - w / 2 - 1, y - 4);
+            }
+            // Real-Balken (rechts, blau)
+            if (reV != null) {
+              const y = u.valToPos(reV, 'kwhd', true);
+              ctx.fillStyle = 'rgba(87,148,242,0.75)';
+              ctx.fillRect(x + 1, y, w, Math.max(1, y0 - y));
+              ctx.fillStyle = '#5794f2';
+              ctx.fillText(reV.toFixed(2), x + w / 2 + 1, y - 4);
+            }
           }
           ctx.restore();
         },
       ],
     };
     if (fcDaysPlot) { fcDaysPlot.destroy(); fcDaysPlot = null; }
-    fcDaysPlot = new uPlot(dayOpts, [dTimes, dKwh], $('fcchartdays'));
+    fcDaysPlot = new uPlot(dayOpts, [dTimes, dKwh, dReal], $('fcchartdays'));
+    $('fcbarlegend').innerHTML =
+      '<span class="lg-dot" style="background:#73bf69"></span> Prognose &nbsp;&nbsp;' +
+      '<span class="lg-dot" style="background:#5794f2"></span> Real (InfluxDB) — nur vergangene/aktuelle Tage';
 
     status.textContent = 'Daten OK';
     status.classList.remove('err');

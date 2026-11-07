@@ -67,10 +67,8 @@ async function updateFlow() {
     data[2].push(v[2] == null ? null : Math.round(v[2]));
     data[3].push(v[3] == null ? null : Math.round(v[3]));
   }
-  // Battery-Farbe dynamisch wie Grafana (thresholds, seriesBy last): >0 grün, <0 rot
-  let batLast = null;
-  for (let j = data[3].length - 1; j >= 0; j--) if (data[3][j] != null) { batLast = data[3][j]; break; }
-  const batColor = batLast == null ? '#73bf69' : (batLast >= 0 ? '#73bf69' : '#f2495c');
+  // Battery fest BLAU (frueher dynamisch grün/rot – zu nah an PV-Grün)
+  const batColor = '#5794f2';
   const opts = uplotBaseOpts(220,
     (u, vals) => vals.map((v) => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + ' kW' : v + ' W')));
   opts.width = $('flowchart').clientWidth;
@@ -80,17 +78,10 @@ async function updateFlow() {
     {},
     { label: 'PV power', stroke: '#73bf69', width: 1.5, fill: 'rgba(115,191,105,0.12)', spanGaps: true },
     { label: 'Consumption', stroke: '#ff9830', width: 1.5, fill: 'rgba(255,152,48,0.10)', spanGaps: true },
-    { label: 'Battery', stroke: batColor, width: 1.5, spanGaps: true },
+    { label: 'Battery', stroke: batColor, width: 1.5, fill: 'rgba(87,148,242,0.12)', spanGaps: true },
   ];
   if (!flowPlot) flowPlot = new uPlot(opts, data, $('flowchart'));
-  else {
-    // Farbe bei Richtungwechsel aktualisieren
-    if (flowPlot.series[3].stroke !== batColor) {
-      flowPlot.delSeries(3);
-      flowPlot.addSeries({ label: 'Battery', stroke: batColor, width: 1.5, spanGaps: true }, 3);
-    }
-    flowPlot.setData(data);
-  }
+  else flowPlot.setData(data);
   renderLegendTable($('flowlegend'), [
     { label: 'PV power', color: '#73bf69', values: data[1], fmt: fmtWLegend },
     { label: 'Consumption', color: '#ff9830', values: data[2], fmt: fmtWLegend },

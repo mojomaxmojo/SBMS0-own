@@ -247,19 +247,18 @@ async function updateDailyInner() {
   const keys = [...buckets.keys()].sort((a, b) => a - b);
   if (!keys.length) { box.innerHTML = ''; return; }
 
-  const data = [[], [], [], []];
+  const data = [[], [], [], [], []];
   let maxAbs = 0.1;
-  const nets = [];
   for (const t of keys) {
     const b = buckets.get(t);
     // b.bat = Summe der Stundenmittel (W) -> jedes Stundenmittel gilt 1 h -> Wh
     const net = b.bat / 1000;                   // Tagesbilanz kWh (+ Überschuss / – Defizit)
     const soc = b.socN ? b.soc / b.socN : null;
     data[0].push(t);
-    data[1].push(net >= 0 ? Number(net.toFixed(2)) : null);   // Plus-Kurve (grün)
-    data[2].push(net < 0 ? Number(net.toFixed(2)) : null);    // Minus-Kurve (rot)
-    data[3].push(soc == null ? null : Number(soc.toFixed(1)));
-    nets.push(net);
+    data[1].push(Number(net.toFixed(2)));                      // durchgehende Bilanz-Linie
+    data[2].push(net >= 0 ? Number(net.toFixed(2)) : null);    // grüne Punkte (Plus)
+    data[3].push(net < 0 ? Number(net.toFixed(2)) : null);     // rote Punkte (Minus)
+    data[4].push(soc == null ? null : Number(soc.toFixed(1)));
     maxAbs = Math.max(maxAbs, Math.abs(net));
   }
   // Y-Achse symmetrisch, Nulllinie immer sichtbar
@@ -274,10 +273,12 @@ async function updateDailyInner() {
   opts.cursor = { x: true, y: false, points: { show: false } };
   opts.series = [
     {},
-    { label: 'Plus (+)', stroke: '#73bf69', width: 2.5, scale: 'kwh', spanGaps: false,
-      points: { show: true, size: 4, stroke: '#73bf69', fill: '#73bf69' } },
-    { label: 'Minus (–)', stroke: '#f2495c', width: 2.5, scale: 'kwh', spanGaps: false,
-      points: { show: true, size: 4, stroke: '#f2495c', fill: '#f2495c' } },
+    { label: 'Bilanz pro Tag (+/–)', stroke: '#f2cc0c', width: 1.5, scale: 'kwh', spanGaps: true,
+      points: { show: false } },
+    { label: 'Plus-Punkte', stroke: 'rgba(0,0,0,0)', width: 0, scale: 'kwh', spanGaps: true,
+      points: { show: true, size: 5, stroke: '#73bf69', fill: '#73bf69' } },
+    { label: 'Minus-Punkte', stroke: 'rgba(0,0,0,0)', width: 0, scale: 'kwh', spanGaps: true,
+      points: { show: true, size: 5, stroke: '#f2495c', fill: '#f2495c' } },
     { label: 'SOC (Mittel)', stroke: '#5794f2', width: 1.5, scale: 'soc', spanGaps: true,
       points: { show: false } },
   ];
@@ -296,21 +297,21 @@ async function updateDailyInner() {
     { scale: 'soc', stroke: '#5794f2', grid: { show: false }, ticks: { stroke: '#2c3235' }, side: 1, size: 50,
       values: (u, vals) => vals.map((v) => Number(v).toFixed(0) + '%') },
   ];
-  if (!dailyPlot) {
-    try {
-      dailyPlot = new uPlot(opts, data, $('dailychart'));
-    } catch (e) {
-      $('dailylegend').innerHTML = '<span class="err-ts">Chart-Fehler: ' + (e.message || e) + '</span>';
-      return;
-    }
-  } else { dailyPlot.scales = opts.scales; dailyPlot.setData(data, true); }
+  // Immer komplett neu zeichnen (vermeidet Update-/Skalierungsprobleme
+  // beim Zeitraumwechsel – Charts sind billig genug)
+  if (dailyPlot) { dailyPlot.destroy(); dailyPlot = null; }
+  try {
+    dailyPlot = new uPlot(opts, data, $('dailychart'));
+  } catch (e) {
+    $('dailylegend').innerHTML = '<span class="err-ts">Chart-Fehler: ' + (e.message || e) + '</span>';
+    return;
+  }
 
   $('daily-hint').textContent = hourly ? 'stündlich' : 'pro Tag';
   renderLegendTable(box, [
-    { label: 'Bilanz pro Tag (+/–)', color: '#73bf69',
-      values: nets.map((v) => v >= 0 ? v : v),
+    { label: 'Bilanz pro Tag (+/–)', color: '#f2cc0c', values: data[1],
       fmt: (v) => v == null ? '–' : (v >= 0 ? '+' : '') + fmtKwh(v) },
-    { label: 'SOC (Mittel)', color: '#5794f2', values: data[3], fmt: fmtPct },
+    { label: 'SOC (Mittel)', color: '#5794f2', values: data[4], fmt: fmtPct },
   ], ['Min', 'Mean', 'Max']);
 }
 

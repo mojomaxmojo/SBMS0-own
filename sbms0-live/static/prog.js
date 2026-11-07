@@ -31,8 +31,10 @@ async function load() {
     if (fc.error) throw new Error(fc.error);
 
     $('pv-headline').textContent =
-      `PV-Prognose (${fc.daily.length} Tage) – ${cfg.ort || ''} · ${fc.kwp} kWp · ${fc.tilt}° Neigung · ` +
-      `Open-Meteo · P = kWp × Strahlung × ${fc.pr.toFixed(2)}`;
+      `PV-Prognose (${fc.daily.length} Tage) – ${cfg.ort || ''} · ${fc.kwp} kWp · ${fc.tilt}° · ` +
+      `WR ${fc.inverter || ''}` +
+      (fc.shade_from ? ` · Schatten ab ${fc.shade_from} (${fc.shade_percent}%)` : '') +
+      ` · solXcept-Modell`;
 
     /* Tages-Balkendiagramm: Prognose + Real nebeneinander, kWh-Zahl oben */
     const realByDate = {};

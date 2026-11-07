@@ -201,12 +201,13 @@ async function updateErrEvents() {
   box.innerHTML = html + more;
 }
 
-/* ---------- Tagesbilanz: Balken Erzeugt/Verbraucht + SOC-Linie ---------- */
-// Stundliche Mittelwerte aus downsampled_1m, Aggregation auf Tage (lokale
-// Zeitzone!) in JS – so stimmen die Tagesgrenzen auch bei Sommer/Winterzeit.
+/* ---------- Tagesbilanz: kumulierte Energie-Bilanz + SOC-Linie ---------- */
+// Bilanz = Integral der Battery Power W (positiv = Laden, negativ = Entladen).
+// Das ist physikalisch identisch mit der SOC-Aenderung und unabhängig von
+// Rundungs-/Lückenartefakten in PV-/Consumption-Feldern.
+// Stundenmittel aus downsampled_1m, Tages-/Stunden-Buckets in JS (DST-sicher).
 const Q_DAILY = () =>
-  `SELECT mean("PV Power W") AS pv, mean("Consumption Power W") AS cons, ` +
-  `mean("State of Charge") AS soc ` +
+  `SELECT mean("Battery Power W") AS bat, mean("State of Charge") AS soc ` +
   `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} ` +
   `GROUP BY time(60m) fill(null)`;
 
@@ -224,17 +225,16 @@ async function updateDaily() {
   const hourly = range.hours <= 48;
   const buckets = new Map();
   for (const v of s.values) {
-    if (v[1] == null && v[2] == null && v[3] == null) continue;
+    if (v[1] == null && v[2] == null) continue;
     const d = new Date(v[0]);
     const t0 = hourly
       ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime()
       : new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     let b = buckets.get(t0);
-    if (!b) { b = { n: 0, pv: 0, cons: 0, soc: 0, socN: 0 }; buckets.set(t0, b); }
+    if (!b) { b = { n: 0, bat: 0, batN: 0, soc: 0, socN: 0 }; buckets.set(t0, b); }
     b.n++;
-    if (v[1] != null) b.pv += v[1];
-    if (v[2] != null) b.cons += v[2];
-    if (v[3] != null) { b.soc += v[3]; b.socN++; }
+    if (v[1] != null) { b.bat += v[1]; b.batN++; }   // Stundenmittel -> 1 h Energie
+    if (v[2] != null) { b.soc += v[2]; b.socN++; }
   }
   const keys = [...buckets.keys()].sort((a, b) => a - b);
   if (!keys.length) { box.innerHTML = ''; return; }
@@ -244,9 +244,8 @@ async function updateDaily() {
   let sum = 0;                                  // kumulierte Bilanz über den Zeitraum
   for (const t of keys) {
     const b = buckets.get(t);
-    const pv = b.pv / 1000;                     // Stunden-Mittel (W) -> kWh
-    const cons = b.cons / 1000;
-    sum += pv - cons;                           // + Überschuss / – Defizit
+    // b.bat = Summe der Stundenmittel (W) -> jedes Stundenmittel gilt 1 h -> Wh
+    sum += b.bat / 1000;                        // kWh (Laden +, Entladen –)
     const soc = b.socN ? b.soc / b.socN : null;
     data[0].push(t);
     data[1].push(Number(sum.toFixed(2)));       // kumulierte Bilanz (Linie)

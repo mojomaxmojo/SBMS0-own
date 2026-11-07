@@ -46,7 +46,7 @@
   "shade_below_elevation": 12,
   "shade_percent": 100,
   "shade_from": "",
-  "performance_ratio": 1.10,
+  "performance_ratio": 1.0,
   "timezone": "Europe/Lisbon",
   "forecast_days": 7,
   "last_cleaned": "",

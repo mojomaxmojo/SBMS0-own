@@ -202,6 +202,95 @@ def pvcompare():
 
     return jsonify({'pr': pr, 'kwp': kwp, 'timezone': tzname, 'model': 'solXpect',
                     'days': out[-8:]})
+@app.route('/pvhourly')
+def pvhourly():
+    """Tagesgang-Vergleich für einen vergangenen Tag (innerhalb der letzten
+    7 Tage): stündlich Prognose (solXcept-Modell) vs. Real (Influx-Mittel)
+    vs. SOC."""
+    from datetime import datetime, timedelta, timezone as _tz
+
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    tzname = cfg.get('timezone', 'Europe/Lisbon')
+    day = request.args.get('date', '')
+    try:
+        day_dt = datetime.strptime(day, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'date Parameter fehlt/format falsch (JJJJ-MM-TT)'}), 400
+
+    try:
+        from zoneinfo import ZoneInfo
+        LOCAL_TZ = ZoneInfo(tzname)
+    except Exception:
+        LOCAL_TZ = _tz.utc
+    today = datetime.now(LOCAL_TZ).date()
+    if day_dt > today or day_dt < today - timedelta(days=7):
+        return jsonify({'error': 'Datum muss innerhalb der letzten 7 Tage liegen'}), 400
+
+    # --- Open-Meteo (past_days=7 deckt den Zeitraum ab) ---
+    try:
+        r = requests.get(
+            'https://api.open-meteo.com/v1/forecast',
+            params={
+                'latitude': cfg.get('latitude'),
+                'longitude': cfg.get('longitude'),
+                'hourly': 'direct_normal_irradiance,diffuse_radiation,'
+                          'shortwave_radiation,temperature_2m',
+                'past_days': 7, 'forecast_days': 1,
+                'timezone': 'UTC', 'models': 'best_match',
+            },
+            timeout=20,
+        )
+        r.raise_for_status()
+        hourly = r.json()['hourly']
+    except (requests.RequestException, ValueError, KeyError) as e:
+        return jsonify({'error': 'Open-Meteo nicht erreichbar: ' + str(e)[:150]}), 502
+
+    import solar as _solar
+    plant = _solar.Plant(cfg)
+    hours = _solar.hourly_watts(
+        plant, hourly['time'],
+        hourly['direct_normal_irradiance'], hourly['diffuse_radiation'],
+        hourly['shortwave_radiation'], hourly['temperature_2m'], tzname)
+    fc_by_hour = {t[11:16]: w for t, w in hours if t[:10] == day}
+
+    # --- Real + SOC aus InfluxDB (Stundenmittel des gewählten Tages) ---
+    d_start = int(datetime(day_dt.year, day_dt.month, day_dt.day,
+                           tzinfo=LOCAL_TZ).timestamp() * 1000)
+    d_end = d_start + 86400 * 1000
+    real_by_hour, soc_by_hour = {}, {}
+    try:
+        r2 = requests.get(
+            INFLUX_URL,
+            params={'db': INFLUX_DB, 'epoch': 'ms', 'throttle': '0',
+                    'q': 'SELECT mean("PV Power W") AS p, mean("State of Charge") AS soc '
+                         'FROM "raw_1s"."SBMS_Metrics" '
+                         "WHERE \"Name\" = 'SBMS0a' AND time >= %dms AND time < %dms "
+                         'GROUP BY time(1h) fill(null)' % (d_start, d_end)},
+            timeout=30,
+        )
+        r2.raise_for_status()
+        s = r2.json()['results'][0]['series'][0]
+        for ts, p, soc in s['values']:
+            hh = datetime.fromtimestamp(ts / 1000, tz=LOCAL_TZ).strftime('%H:00')
+            if p is not None:
+                real_by_hour[hh] = round(float(p), 1)
+            if soc is not None:
+                soc_by_hour[hh] = round(float(soc), 1)
+    except (requests.RequestException, ValueError, KeyError, IndexError):
+        pass
+
+    hours_out = []
+    for hh in sorted(set(list(fc_by_hour.keys()) + list(real_by_hour.keys()))):
+        hours_out.append({
+            'h': hh,
+            'fc': fc_by_hour.get(hh),
+            'real': real_by_hour.get(hh),
+            'soc': soc_by_hour.get(hh),
+        })
+    return jsonify({'date': day, 'timezone': tzname, 'hours': hours_out})
+
+
 @app.route('/rain')
 def rain():
     """Reinigungs-Hinweis: Tage seit letztem Waschregen (Open-Meteo,

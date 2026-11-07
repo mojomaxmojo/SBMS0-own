@@ -230,6 +230,64 @@ async function loadPast(cmp, pr) {
   $('pr-hint').textContent = pr.toFixed(2);
 }
 
+/* --- Tagesgang: Prognose vs. Real vs. SOC für einen gewählten Tag --- */
+let tgPlot = null;
+const TG_COLORS = { fc: '#73bf69', real: '#5794f2', soc: '#f2cc0c' };
+
+async function loadTagesgang() {
+  const status = $('tg-status');
+  const day = $('tg-date').value;
+  if (!day) { status.textContent = 'Datum wählen'; return; }
+  status.textContent = 'lade…';
+  try {
+    const tg = await fetchJSON('/pvhourly?date=' + day);
+    if (tg.error) throw new Error(tg.error);
+    const times = tg.hours.map((h) => new Date(day + 'T' + h.h).getTime());
+    const fc = tg.hours.map((h) => h.fc == null ? null : Number(h.fc));
+    const real = tg.hours.map((h) => h.real == null ? null : Number(h.real));
+    const soc = tg.hours.map((h) => h.soc == null ? null : Number(h.soc));
+
+    const maxW = Math.max(100, ...fc.filter((v) => v != null), ...real.filter((v) => v != null)) * 1.15;
+    const opts = uplotBaseOpts(260, (u, vals) => vals.map((v) => Math.round(v) + ' W'));
+    opts.width = $('tgchart').clientWidth;
+    opts.legend = { show: false };
+    opts.cursor = { x: true, y: false, points: { show: false } };
+    opts.series = [
+      {},
+      { label: 'Prognose', stroke: TG_COLORS.fc, width: 2, spanGaps: true,
+        points: { show: true, size: 4, stroke: TG_COLORS.fc, fill: TG_COLORS.fc } },
+      { label: 'Real (Influx)', stroke: TG_COLORS.real, width: 2, spanGaps: true,
+        points: { show: true, size: 4, stroke: TG_COLORS.real, fill: TG_COLORS.real } },
+      { label: 'SOC', stroke: TG_COLORS.soc, width: 1.5, scale: 'socp', spanGaps: true,
+        dash: [4, 3], points: { show: false } },
+    ];
+    opts.scales = { x: { time: true },
+      w: { auto: false, range: [0, maxW] },
+      socp: { auto: false, range: [0, 100] } };
+    opts.axes = [
+      { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
+        values: (u, vals) => vals.map((v) => new Date(v).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) },
+      { scale: 'w', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
+        values: (u, vals) => vals.map((v) => Math.round(v)) },
+      { scale: 'socp', stroke: TG_COLORS.soc, grid: { show: false }, ticks: { stroke: '#2c3235' }, side: 1, size: 50,
+        values: (u, vals) => vals.map((v) => Number(v).toFixed(0) + '%') },
+    ];
+    if (tgPlot) { tgPlot.destroy(); tgPlot = null; }
+    tgPlot = new uPlot(opts, [times, fc, real, soc], $('tgchart'));
+
+    renderLegendTable($('tglegend'), [
+      { label: 'Prognose', color: TG_COLORS.fc, values: fc, fmt: fmtWFC },
+      { label: 'Real (Influx)', color: TG_COLORS.real, values: real, fmt: fmtWFC },
+      { label: 'SOC', color: TG_COLORS.soc, values: soc, fmt: (v) => v == null ? '–' : v.toFixed(0) + ' %' },
+    ], ['Min', 'Mean', 'Max']);
+    status.textContent = day + ' OK';
+    status.classList.remove('err');
+  } catch (e) {
+    status.textContent = 'FEHLER: ' + (e.message || e);
+    status.classList.add('err');
+  }
+}
+
 /* --- Reinigungs-Hinweis --- */
 async function loadRain() {
   try {
@@ -254,6 +312,13 @@ async function loadRain() {
 
 load();
 loadRain();
+$('tg-load').addEventListener('click', loadTagesgang);
+// Vorauswahl: gestern
+{
+  const y = new Date(Date.now() - 86400e3);
+  $('tg-date').value = y.toISOString().slice(0, 10);
+}
+loadTagesgang();
 setInterval(load, 30 * 60000);  // alle 30 min (Server-Cache ist auch 30 min)
 setInterval(loadRain, 6 * 3600000);
 window.addEventListener('resize', () => load());

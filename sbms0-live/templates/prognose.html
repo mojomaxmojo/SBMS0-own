@@ -55,8 +55,21 @@
   </div>
 </div>
 
+<div class="grid" style="margin-top:8px">
+  <div class="panel" id="tg-panel">
+    <div class="panel-title">Tagesgang – warum weicht ein Tag ab? <span class="override-hint">Datum wählen (letzte 7 Tage)</span></div>
+    <div style="display:flex; gap:8px; align-items:center; padding:0 2px 8px">
+      <input type="date" id="tg-date">
+      <button id="tg-load">Anzeigen</button>
+      <span id="tg-status" class="dim"></span>
+    </div>
+    <div id="tgchart"></div>
+    <div id="tglegend"></div>
+  </div>
+</div>
+
 <script src="/static/uplot.iife.min.js"></script>
 <script src="/static/shared.js?v=4"></script>
-<script src="/static/prog.js?v=13"></script>
+<script src="/static/prog.js?v=14"></script>
 </body>
 </html>

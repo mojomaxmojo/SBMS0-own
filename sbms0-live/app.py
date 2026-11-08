@@ -428,6 +428,18 @@ def _weather_dataset():
                 d['mix_wind'] = round(sum(x['wind'] for x in srcs) / len(srcs), 0)
                 d['span_prec'] = [min(x['prec'] for x in srcs), max(x['prec'] for x in srcs)]
                 d['span_gust'] = [min(x['gust'] for x in srcs), max(x['gust'] for x in srcs)]
+                # Konfidenz: Spread relativ zum Mix
+                #   <15 %  = hoch (Modelle einig -> Mix anzeigen)
+                #   15-40% = mittel (Spanne anzeigen)
+                #   >40 %  = niedrig ("unsicher", fuer Sicherheit den MAX-Wert nutzen)
+                for met, mix in (('gust', d['mix_gust']), ('prec', d['mix_prec'])):
+                    vals = [x[met] for x in srcs]
+                    lo, hi = min(vals), max(vals)
+                    d[f'{met}_min'] = round(lo, 1)
+                    d[f'{met}_max'] = round(hi, 1)
+                    pct = round((hi - lo) / mix * 100) if mix > 0 else 0
+                    d[f'spread_{met}_pct'] = pct
+                    d[f'conf_{met}'] = 'high' if pct < 15 else ('mid' if pct < 40 else 'low')
                 harm = next((x for x in srcs if x['name'] == 'harmonie'), None)
                 if harm:
                     d['prec_harm'] = harm['prec']
@@ -479,6 +491,13 @@ def _weather_dataset():
                 'span_prec': d.get('span_prec'), 'span_gust': d.get('span_gust'),
                 'prec_harm': d.get('prec_harm'), 'gust_harm': d.get('gust_harm'),
                 'wind_harm': d.get('wind_harm'),
+                'gust_min': d.get('gust_min'), 'gust_max': d.get('gust_max'),
+                'prec_min': d.get('prec_min'), 'prec_max': d.get('prec_max'),
+                'conf_gust': d.get('conf_gust'), 'conf_prec': d.get('conf_prec'),
+                'spread_gust_pct': d.get('spread_gust_pct'),
+                'spread_prec_pct': d.get('spread_prec_pct'),
+                'spread_mid': float(cfg.get('spread_mid_pct', 15) or 15),
+                'spread_warn': float(cfg.get('spread_warn_pct', 40) or 40),
             })
 
         # Stündliche Median-Werte über die Modelle (für den 24-h-Chart) -

@@ -64,6 +64,7 @@ function wmoText(c) {
 /* --- 24 h: stündliche Kacheln ab aktueller Stunde (kein Diagramm) --- */
 async function update24(w) {
   const now = Date.now();
+  const sMid = Number(w.spread_mid || 15), sWarn = Number(w.spread_warn || 40);
   const times = w.times.map((t) => new Date(t.replace(' ', 'T')).getTime());
   // Aktuelle Stunde = erster Index (t <= now < t+1h) -> immer links
   let i0 = 0;
@@ -105,18 +106,56 @@ async function update24(w) {
       wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
     });
   }
+  const hours = [];
+  for (let i = i0; i <= i1; i++) {
+    // Konfidenz je Stunde über die 3 Modell-Werte
+    const gv = pModels.map((m) => m.gust ? m.gust[i] : null).filter((v) => v != null).map(Number);
+    const pv2 = pModels.map((m) => m.prec ? m.prec[i] : null).filter((v) => v != null).map(Number);
+    const gMix = gv.length ? gv.reduce((a, b) => a + b, 0) / gv.length : null;
+    const gMin = gv.length ? Math.min(...gv) : null;
+    const gMax = gv.length ? Math.max(...gv) : null;
+    const gPct = (gMix && gMax != null && gMin != null) ? (gMax - gMin) / gMix * 100 : 0;
+    const gConf = gPct < sMid ? 'high' : (gPct < sWarn ? 'mid' : 'low');
+    const wVal = harm && harm.wind && harm.wind[i] != null ? Number(harm.wind[i])
+      : (w.hourly.wind[i] != null ? Number(w.hourly.wind[i]) : null);
+    let gustTxt;
+    if (gConf === 'low' && gMax != null) gustTxt = `unsicher: bis ${gMax.toFixed(0)}`;
+    else if (gConf === 'mid' && gMax != null) gustTxt = `${gMin.toFixed(0)}–${gMax.toFixed(0)}`;
+    else gustTxt = `${medianGust(i) == null ? '–' : Number(medianGust(i)).toFixed(0)}`;
+    hours.push({
+      t: times[i],
+      label: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' +
+        new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      day: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }),
+      temp: w.hourly.temp[i], wind: wVal, gust: medianGust(i),
+      gustTxt, gConf,
+      cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
+      uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
+      gMax, gMin, gConf,
+      wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
+      wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
+      metT: (w.hourly.met && w.hourly.met.temp) ? w.hourly.met.temp[i] : null,
+      metW: (w.hourly.met && w.hourly.met.wind) ? w.hourly.met.wind[i] : null,
+      metP: (w.hourly.met && w.hourly.met.prec) ? w.hourly.met.prec[i] : null,
+    });
+  }
   const warnGustHourly = Number(w.warn_gust_hourly || 60);
   const isNow = (t) => t <= now && now < t + 3600e3;
   const tiles = hours.map((h) => {
     const nowCls = isNow(h.t) ? ' now' : '';
     const precCls = (h.prec != null && h.prec > 0) ? ' rain' : '';
-    // Oranger Rahmen: Median-Böen der Stunde über der Schwelle (pv.json warn_gust_hourly_kmh)
-    const gustCls = (h.gust != null && warnGustHourly > 0 && Number(h.gust) >= warnGustHourly) ? ' gust-warn' : '';
+    // Oranger Rahmen: MAX-Böen der Stunde über der Schwelle (pv.json warn_gust_hourly_kmh)
+    const gustCls = (warnGustHourly > 0 && h.gMax != null && h.gMax >= warnGustHourly) ? ' gust-warn' : '';
+    const gustDisp = (h.gConf === 'low' && h.gMax != null)
+      ? `⚠ unsicher: bis ${h.gMax.toFixed(0)}`
+      : (h.gConf === 'mid' && h.gMin != null)
+        ? `${h.gMin.toFixed(0)}–${h.gMax.toFixed(0)}`
+        : `${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}`;
     return `<div class="h-hour${nowCls}${precCls}${gustCls}">
       <div class="h-time">${wmoIcon(h.wmo)} ${h.label}</div>
       ${h.wtxt ? `<div class="h-wtxt">${h.wtxt}</div>` : ''}
       <div class="h-temp">🌡 ${h.temp == null ? '–' : Number(h.temp).toFixed(0)}°C</div>
-      <div class="h-row">💨 ${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}</div>
+      <div class="h-row">💨 ${gustDisp}</div>
       <div class="h-row">☁ ${h.cloud == null ? '–' : Number(h.cloud).toFixed(0)} %</div>
       <div class="h-row">🌧 ${h.prec == null ? '–' : Number(h.prec).toFixed(1)} mm / ${h.precP == null ? '–' : Number(h.precP).toFixed(0)} %</div>
       <div class="h-row">☀ UV ${h.uv == null ? '–' : Number(h.uv).toFixed(0)}</div>
@@ -140,13 +179,25 @@ function updateTiles(w) {
   const days = w.daily.filter((d) => d.date >= today);
   const warnGust = Number(w.warn_gust || 60);
   const warnRain = Number(w.warn_rain_mm || 20);
+  const sMid = Number(w.spread_mid || 15), sWarn = Number(w.spread_warn || 40);
+
+  // Konfidenz-Logik: Spread = (max-min)/Mix in %
+  //   low (>sWarn)  : "unsicher" -> Spanne + MAX-Wert fuer Warnungen
+  //   mid           : Spanne anzeigen
+  //   high (<sMid)  : Mix anzeigen
+  const confOf = (min, max, mix) => {
+    if (min == null || max == null || mix == null || mix <= 0) return { conf: null };
+    const pct = (max - min) / mix * 100;
+    return {
+      conf: pct < sMid ? 'high' : (pct < sWarn ? 'mid' : 'low'),
+      pct: Math.round(pct),
+    };
+  };
   const tiles = days.map((d) => {
     // A+B-Mix: Erwartung = Mittel der unabhängigen Quellen (HARMONIE + ECMWF);
-    // Anzeige: Böen primär HARMONIE (hochauflösend); Warnung: Mix >= Schwelle
-    // ODER HARMONIE >= Schwelle * 1.2 (Puffer gegen Konvektions-Übertreibung)
+    // Warnung: MAX-Wert >= Schwelle; bei Konfidenz 'low' als "unsicher" markiert
     const srcs = d.srcs || [];
     const harm = srcs.find((s) => s.name === 'harmonie') || null;
-    const ec = srcs.find((s) => s.name === 'ecmwf') || null;
     const mixPrec = d.mix_prec != null ? Number(d.mix_prec)
       : (d.prec_median != null ? Number(d.prec_median) : (d.prec_mm != null ? Number(d.prec_mm) : null));
     const mixGust = d.mix_gust != null ? Number(d.mix_gust)
@@ -155,30 +206,57 @@ function updateTiles(w) {
       : (harm ? Number(harm.gust) : (d.gust != null ? Number(d.gust) : null));
     const harmWind = d.wind_harm != null ? Number(d.wind_harm)
       : (harm ? Number(harm.wind) : (d.wind != null ? Number(d.wind) : null));
-    const modelsStr = (d.prec_models && d.prec_models) ? Object.values(d.prec_models).map((v) => v).join(' / ') : '';
+    const cg = confOf(d.gust_min, d.gust_max, mixGust);
+    const cp = confOf(d.prec_min, d.prec_max, mixPrec);
+
+    // Warnung: MAX-Werte (Sicherheit zuerst)
+    const gustWarnVal = d.gust_max != null ? Number(d.gust_max) : harmGust;
+    const precWarnVal = d.prec_max != null ? Number(d.prec_max) : mixPrec;
     const triggers = [];
-    if (mixGust != null && mixGust >= warnGust) triggers.push(`Böen ⌀ ${mixGust} km/h`);
-    if (harmGust != null && warnGust * 1.2 <= harmGust) triggers.push(`Böen HARMONIE ${harmGust} km/h`);
-    if (mixPrec != null && mixPrec >= warnRain) triggers.push(`Regen ⌀ ${mixPrec} mm`);
+    if (gustWarnVal != null && gustWarnVal >= warnGust)
+      triggers.push(`Böen bis ${gustWarnVal} km/h${cg.conf === 'low' ? ' (unsicher)' : ''}`);
+    if (precWarnVal != null && precWarnVal >= warnRain)
+      triggers.push(`Regen bis ${precWarnVal} mm${cp.conf === 'low' ? ' (unsicher)' : ''}`);
     const warn = triggers.length > 0;
     const warnText = warn ? `⚠ UNWETTER: ${triggers.join(' · ')}` : '';
+
+    // Wind-/Regen-Zeile je Konfidenz
+    let gustRow, precRow;
+    if (cg.conf === 'low') {
+      gustRow = `💨 unsicher: bis ${d.gust_max ?? harmGust ?? '–'} km/h`;
+    } else if (cg.conf === 'mid') {
+      gustRow = `💨 ${d.gust_min}–${d.gust_max} km/h`;
+    } else {
+      gustRow = `💨 ${harmWind ?? d.wind ?? '–'} / ${harmGust ?? d.gust ?? '–'} km/h (H)`;
+    }
+    if (cp.conf === 'low') {
+      precRow = `🌧 unsicher: bis ${d.prec_max ?? '–'} mm`;
+    } else if (cp.conf === 'mid') {
+      precRow = `🌧 ${d.prec_min}–${d.prec_max} mm`;
+    } else {
+      precRow = `🌧 ${mixPrec == null ? '–' : mixPrec.toFixed(1)} mm / ${d.prec_prob ?? '–'} %`;
+    }
+
     const dt = new Date(d.date + 'T12:00:00');
     const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
     const kwhCls = d.kwh >= 4 ? 'good' : d.kwh >= 1.5 ? 'mid' : 'poor';
     const srcRow = srcs.length > 1
       ? srcs.map((s) => `${s.name === 'harmonie' ? 'H' : s.name === 'ecmwf' ? 'E' : s.name[0].toUpperCase()} ${s.gust}/${s.prec}`).join(' · ')
       : '';
+    const confNote = (cg.conf === 'low' || cp.conf === 'low')
+      ? `<div class="w-row warn2">↔ Modelle uneinig (Böen ±${cg.pct ?? '–'} %)</div>` : '';
     return `<div class="fc-day w-day${warn ? ' warn' : ''}">
       <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
       ${warn ? `<div class="w-warn">${warnText}</div>` : ''}
       <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
-      <div class="w-row">💨 ${harmWind ?? '–'} / ${harmGust ?? '–'} km/h (H)</div>
-      <div class="w-row dim">${srcRow || '💨 Quellen: keine Daten'}</div>
-      <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${mixPrec == null ? '–' : mixPrec.toFixed(1)} mm / ${d.prec_prob ?? '–'} %</div>
+      ${gustRow ? `<div class="w-row">${gustRow}</div>` : ''}
+      <div class="w-row">☁ ${d.cloud ?? '–'} % · ${precRow}</div>
       <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max == null ? '–' : Math.round(d.uv_max)}</div>
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>
+      ${srcRow ? `<div class="w-row dim">${srcRow}</div>` : ''}
+      ${confNote}
       ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
     </div>`;
   }).join('');

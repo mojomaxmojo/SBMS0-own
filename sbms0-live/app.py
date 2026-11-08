@@ -249,15 +249,17 @@ def _weather_dataset():
                     timeout=25,
                 )
                 r2.raise_for_status()
-                blocks = r2.json()
-                if isinstance(blocks, dict):
-                    blocks = [blocks]
-                for blk in blocks:
-                    mname = str(blk.get('model') or '?')
-                    h2 = blk.get('hourly') or {}
+                j2 = r2.json()
+                # API-Antwort bei Multi-Modell: EIN dict mit Schlüsseln
+                # "precipitation_<model>" (nicht einzelne Blöcke!)
+                h2 = j2.get('hourly') or {}
+                for mname in models_list:
+                    vals2 = h2.get('precipitation_' + mname)
+                    if vals2 is None:
+                        continue   # Modell von der API nicht geliefert
                     lmap = {}
                     mdays = {}
-                    for t2, v2 in zip(h2.get('time', []), h2.get('precipitation', [])):
+                    for t2, v2 in zip(h2.get('time', []), vals2):
                         dt2 = _dt.datetime.strptime(t2, '%Y-%m-%dT%H:%M').replace(tzinfo=_dt.timezone.utc)
                         loc = dt2.astimezone(ltz_mm)
                         liso = loc.strftime('%Y-%m-%dT%H:%M')

@@ -227,8 +227,6 @@ function updateTiles(w) {
     const srcRow = srcs.length > 1
       ? srcs.map((s) => `${s.name === 'harmonie' ? 'H' : s.name === 'ecmwf' ? 'E' : s.name[0].toUpperCase()} ${s.gust}/${s.prec}`).join(' · ')
       : '';
-    const confNote = (cg.conf === 'low' || cp.conf === 'low')
-      ? `<div class="w-row warn2">↔ Modelle uneinig (Böen ±${cg.pct ?? '–'} %)</div>` : '';
     return `<div class="fc-day w-day${warn ? ' warn' : ''}">
       <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
       ${warn ? `<div class="w-warn">${warnText}</div>` : ''}
@@ -240,7 +238,7 @@ function updateTiles(w) {
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>
       ${srcRow ? `<div class="w-row dim">${srcRow}</div>` : ''}
-      ${confNote}
+      ${warn ? `<div class="w-row warn2">↔ Modelle uneinig (Böen ±${cg.pct ?? '–'} %)</div>` : ''}
       ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
     </div>`;
   }).join('');

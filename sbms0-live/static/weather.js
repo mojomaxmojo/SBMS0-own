@@ -16,83 +16,43 @@ async function fetchJSON(url) {
   return await r.json();
 }
 
-/* --- 24-h-Verlauf: stündliches Wetter (keine PV - die ist auf PROGNOSE) --- */
-let wPlot = null;
-
+/* --- 24 h: stündliche Kacheln ab aktueller Stunde (kein Diagramm) --- */
 async function update24(w) {
-  // Fenster: ab jetzt +24 h
   const now = Date.now();
   const times = w.times.map((t) => new Date(t.replace(' ', 'T')).getTime());
+  // Aktuelle Stunde = erster Index (t <= now < t+1h) -> immer links
   let i0 = 0;
   for (let i = 0; i < times.length; i++) {
-    if (times[i] >= now) { i0 = i; break; }
+    if (times[i] <= now && now < times[i] + 3600e3) { i0 = i; break; }
+    if (times[i] > now) { i0 = i; break; }
   }
-  let i1 = times.length - 1;
-  for (let i = times.length - 1; i >= 0; i--) {
-    if (times[i] <= now + 24 * 3600e3) { i1 = i; break; }
+  const i1 = Math.min(times.length - 1, i0 + 23);
+  const hours = [];
+  for (let i = i0; i <= i1; i++) {
+    hours.push({
+      t: times[i],
+      label: new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit' }) + 'h',
+      day: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }),
+      temp: w.hourly.temp[i], wind: w.hourly.wind[i], gust: w.hourly.gusts[i],
+      cloud: w.hourly.cloud[i], prec: w.hourly.precip[i], precP: w.hourly.precip_prob[i],
+      uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
+    });
   }
-  const slice = (arr) => arr.slice(i0, i1 + 1);
-  const tX = slice(times);
-  const temp = slice(w.hourly.temp).map((v) => v == null ? null : Number(v));
-  const rh = slice(w.hourly.rh).map((v) => v == null ? null : Number(v));
-  const wind = slice(w.hourly.wind).map((v) => v == null ? null : Number(v));
-  const gusts = slice(w.hourly.gusts).map((v) => v == null ? null : Number(v));
-  const cloud = slice(w.hourly.cloud).map((v) => v == null ? null : Number(v));
-  const precip = slice(w.hourly.precip).map((v) => v == null ? null : Number(v));
-  const precipP = slice(w.hourly.precip_prob).map((v) => v == null ? null : Number(v));
-  const uv = slice(w.hourly.uv).map((v) => v == null ? null : Number(v));
-
-  const opts = uplotBaseOpts(300, (u, vals) => vals.map((v) => Number(v).toFixed(0)));
-  opts.width = $('wchart24').clientWidth;
-  opts.legend = { show: false };
-  opts.cursor = { x: true, y: false, points: { show: false } };
-  opts.series = [
-    {},
-    { label: 'Temp (°C)', stroke: '#f2495c', width: 2, scale: 't', spanGaps: true, points: { show: false } },
-    { label: 'Wind (km/h)', stroke: '#ff9830', width: 1.5, scale: 'w10', spanGaps: true, points: { show: false } },
-    { label: 'Böen (km/h)', stroke: '#ff9830', width: 1, scale: 'w10', spanGaps: true, dash: [4, 3], points: { show: false } },
-    { label: 'Bewölkung (%)', stroke: '#b3d4ff', width: 1.5, scale: 'pct', spanGaps: true, points: { show: false } },
-    { label: 'Regen-Wahr. (%)', stroke: '#5794f2', width: 1.5, scale: 'pct', spanGaps: true, dash: [2, 3], points: { show: false } },
-    { label: 'Regen (mm/h)', stroke: '#5794f2', width: 0, scale: 'mm', spanGaps: true,
-      fill: 'rgba(87,148,242,0.25)', points: { show: false } },
-    { label: 'UV', stroke: '#f2cc0c', width: 1.5, scale: 'uv', spanGaps: true, points: { show: false } },
-    { label: 'Feuchte (%)', stroke: '#8ab8ff', width: 1, scale: 'pct', spanGaps: true, dash: [2, 3], points: { show: false } },
-  ];
-  const maxPrec = Math.max(1, ...precip.filter((v) => v != null));
-  const maxWind = Math.max(30, ...gusts.filter((v) => v != null), 0) * 1.15;
-  opts.scales = { x: { time: true },
-    t: { auto: true },
-    w10: { auto: false, range: [0, maxWind] },
-    pct: { auto: false, range: [0, 100] },
-    mm: { auto: false, range: [0, maxPrec * 1.2] },
-    uv: { auto: false, range: [0, 12] } };
-  opts.axes = [
-    { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-      values: (u, vals) => vals.map((v) => {
-        const d = new Date(v);
-        return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' +
-          d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-      }) },
-    { scale: 't', stroke: '#f2495c', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 45,
-      values: (u, vals) => vals.map((v) => Number(v).toFixed(0) + '°') },
-    { scale: 'w10', stroke: '#ff9830', grid: { show: false }, ticks: { stroke: '#2c3235' }, side: 1, size: 45,
-      values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
-    { scale: 'pct', stroke: '#b3d4ff', grid: { show: false }, ticks: { stroke: '#2c3235' }, side: 1, size: 45,
-      values: (u, vals) => vals.map((v) => Number(v).toFixed(0) + '%') },
-    { scale: 'uv', stroke: '#f2cc0c', grid: { show: false }, ticks: { stroke: '#2c3235' }, side: 3, size: 40,
-      values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
-  ];
-  if (wPlot) { wPlot.destroy(); wPlot = null; }
-  wPlot = new uPlot(opts, [tX, temp, wind, gusts, cloud, precipP, precip, uv, rh], $('wchart24'));
-
-  renderLegendTable($('wlegend24'), [
-    { label: 'Temp', color: '#f2495c', values: temp, fmt: (v) => v == null ? '–' : v.toFixed(1) + ' °C' },
-    { label: 'Wind/Böen', color: '#ff9830', values: gusts, fmt: (v) => v == null ? '–' : v.toFixed(0) + ' km/h' },
-    { label: 'Bewölkung', color: '#b3d4ff', values: cloud, fmt: (v) => v == null ? '–' : v.toFixed(0) + ' %' },
-    { label: 'Regen mm', color: '#5794f2', values: precip, fmt: (v) => v == null ? '–' : v.toFixed(1) + ' mm' },
-    { label: 'UV', color: '#f2cc0c', values: uv, fmt: (v) => v == null ? '–' : v.toFixed(1) },
-    { label: 'Feuchte', color: '#8ab8ff', values: rh, fmt: (v) => v == null ? '–' : v.toFixed(0) + ' %' },
-  ], ['Min', 'Mean', 'Max']);
+  const isNow = (t) => t <= now && now < t + 3600e3;
+  const tiles = hours.map((h) => {
+    const nowCls = isNow(h.t) ? ' now' : '';
+    const precCls = (h.prec != null && h.prec > 0) ? ' rain' : '';
+    return `<div class="h-hour${nowCls}${precCls}">
+      <div class="h-time">${h.day} ${h.label}</div>
+      <div class="h-temp">🌡 ${h.temp == null ? '–' : Number(h.temp).toFixed(0)}°C</div>
+      <div class="h-row">💨 ${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}</div>
+      <div class="h-row">☁ ${h.cloud == null ? '–' : Number(h.cloud).toFixed(0)} %</div>
+      <div class="h-row">🌧 ${h.prec == null ? '–' : Number(h.prec).toFixed(1)} mm / ${h.precP == null ? '–' : Number(h.precP).toFixed(0)} %</div>
+      <div class="h-row">☀ UV ${h.uv == null ? '–' : Number(h.uv).toFixed(1)}</div>
+      <div class="h-row">💧 ${h.rh == null ? '–' : Number(h.rh).toFixed(0)} % · 👁 ${h.vis == null ? '–' : Number(h.vis).toFixed(0)} km</div>
+    </div>`;
+  }).join('');
+  $('whours').innerHTML = tiles;
 }
 
 /* --- 7-Tage-Kacheln --- */

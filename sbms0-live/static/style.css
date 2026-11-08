@@ -358,3 +358,21 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 /* --- WETTER-Seite --- */
 .w-day .w-row { font-size: 12px; color: var(--txt); margin-top: 3px; white-space: nowrap; }
 .w-day .w-row.dim { color: var(--dim); font-size: 11px; }
+
+/* --- Stündliche Wetter-Kacheln (WETTER oben) --- */
+.whours { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; -webkit-overflow-scrolling: touch; }
+.h-hour {
+  flex: 0 0 92px;
+  background: #1d2126;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 6px 7px;
+  font-size: 11px;
+  color: var(--txt);
+  white-space: nowrap;
+}
+.h-hour.now { border-color: var(--green); background: #1c2a1e; }
+.h-hour.rain { border-color: var(--blue); }
+.h-hour .h-time { color: var(--dim); font-size: 11px; margin-bottom: 3px; }
+.h-hour .h-temp { color: var(--bright); font-size: 1.05rem; font-weight: 600; margin-bottom: 3px; }
+.h-hour .h-row { margin-top: 2px; }

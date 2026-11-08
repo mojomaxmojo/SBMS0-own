@@ -117,7 +117,9 @@ function renderAlerts(resp) {
     `<div class="alert-banner" style="background:${a.color};color:${a.text_color || '#fff'}">` +
     `<span class="alert-title">⚠ OFFIZIELLE WARNUNG (${a.level})</span>` +
     `<span>${a.event} · ${a.area}</span>` +
-    `<span class="alert-time">${a.from} – ${a.to}</span></div>`
+    `<span class="alert-time">${a.from} – ${a.to}</span>` +
+    (a.text ? `<span class="alert-desc">${a.text}</span>` : '') +
+    `</div>`
   ).join('');
 }
 

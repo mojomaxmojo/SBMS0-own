@@ -376,3 +376,23 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 .h-hour .h-time { color: var(--dim); font-size: 11px; margin-bottom: 3px; }
 .h-hour .h-temp { color: var(--bright); font-size: 1.05rem; font-weight: 600; margin-bottom: 3px; }
 .h-hour .h-row { margin-top: 2px; }
+
+/* --- WETTER: größere Stunden-Kacheln (doppelte Höhe, +25 % Breite, größere Schrift) --- */
+#w24-panel .h-hour {
+  flex: 0 0 115px;          /* 92 -> 115 px (+25 %) */
+  padding: 14px 9px;        /* ~doppelte Innenhöhe */
+  font-size: 13px;
+}
+#w24-panel .h-hour .h-time { font-size: 13px; }
+#w24-panel .h-hour .h-temp { font-size: 1.5rem; }
+#w24-panel .h-hour .h-row { font-size: 13px; margin-top: 4px; }
+
+/* --- WETTER: 7-Tage-Kacheln nur Zukunft, auf Breite verteilt --- */
+#wtiles .fc-day {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px 8px;
+  text-align: center;
+}
+#wtiles .fc-day .w-row { font-size: 13px; white-space: normal; }
+#wtiles .fc-day .fc-kwh { font-size: 1.6rem; }

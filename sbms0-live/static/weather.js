@@ -55,7 +55,7 @@ async function update24(w) {
   $('whours').innerHTML = tiles;
 }
 
-/* --- 7-Tage-Kacheln --- */
+/* --- 7-Tage-Kacheln: nur heute + Zukunft, auf Breite verteilt --- */
 function updateTiles(w) {
   const today = new Date().toISOString().slice(0, 10);
   const dirArrow = (deg) => {
@@ -63,13 +63,13 @@ function updateTiles(w) {
     const dirs = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
     return dirs[Math.round(deg / 45) % 8];
   };
-  const tiles = w.daily.map((d) => {
+  const days = w.daily.filter((d) => d.date >= today);
+  const tiles = days.map((d) => {
     const dt = new Date(d.date + 'T12:00:00');
     const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
     const kwhCls = d.kwh >= 4 ? 'good' : d.kwh >= 1.5 ? 'mid' : 'poor';
     return `<div class="fc-day w-day">
-      <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
-      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
+      <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
       <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max ?? '–'}</div>
       <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${d.prec_mm ?? '–'} mm / ${d.prec_prob ?? '–'} %</div>
       <div class="w-row">💨 ${d.wind ?? '–'} / ${d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
@@ -80,7 +80,6 @@ function updateTiles(w) {
   }).join('');
   $('wtiles').innerHTML = tiles;
 }
-
 async function load() {
   const status = $('status');
   try {

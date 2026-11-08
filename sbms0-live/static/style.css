@@ -34,7 +34,7 @@ body {
   align-items: center;
   padding: 2px 4px 10px;
 }
-#topbar .nav-links { display: flex; gap: 8px; }
+#topbar .nav-links { display: flex; gap: 75px; }
 #topbar a {
   color: var(--txt);
   text-decoration: none;

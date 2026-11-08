@@ -374,7 +374,7 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 .h-hour.now { border-color: var(--green); background: #1c2a1e; }
 .h-hour.rain { border-color: var(--blue); }
 .h-hour .h-time { color: var(--dim); font-size: 11px; margin-bottom: 3px; }
-.h-hour .h-temp { color: var(--bright); font-size: 1.05rem; font-weight: 600; margin-bottom: 3px; }
+.h-hour .h-temp { color: var(--bright); font-size: 1.05rem; font-weight: 600; margin-bottom: 3px; margin-top: 4px; }
 .h-hour .h-row { margin-top: 2px; }
 
 /* --- WETTER: größere Stunden-Kacheln (doppelte Höhe, +25 % Breite, größere Schrift) --- */

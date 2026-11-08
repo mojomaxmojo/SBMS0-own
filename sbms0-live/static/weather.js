@@ -42,7 +42,8 @@ async function update24(w) {
   for (let i = i0; i <= i1; i++) {
     hours.push({
       t: times[i],
-      label: new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit' }) + 'h',
+      label: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' +
+        new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
       day: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }),
       temp: w.hourly.temp[i], wind: medianWind(i), gust: medianGust(i),
       cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],

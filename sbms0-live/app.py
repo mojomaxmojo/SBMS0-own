@@ -335,6 +335,15 @@ def _weather_dataset():
         daily = []
         for day, d in sorted(daily_map.items()):
             s = sun_map.get(day, {})
+            # Multi-Modell-Regen: Einzelwerte + Median (VOR dem append setzen!)
+            mmvals = [round(d.get(f"mm_{mp['model']}", 0.0), 1) for mp in models_precip]
+            if mmvals:
+                srt = sorted(mmvals)
+                mid = len(srt) // 2
+                d['prec_median'] = round(srt[mid] if len(srt) % 2 else (srt[mid - 1] + srt[mid]) / 2, 1)
+            d['prec_models'] = {mp['model']: round(d.get(f"mm_{mp['model']}", 0.0), 1)
+                                for mp in models_precip}
+
             daily.append({
                 'date': day,
                 'kwh': round(d['kwh'], 2),
@@ -352,15 +361,9 @@ def _weather_dataset():
                 'sunrise': (s.get('sunrise') or '')[11:16],
                 'sunset': (s.get('sunset') or '')[11:16],
                 'dir': s.get('dir'),
+                'prec_median': d.get('prec_median'),
+                'prec_models': d.get('prec_models'),
             })
-            # Multi-Modell-Regen: Einzelwerte + Median
-            mmvals = [round(d.get(f"mm_{mp['model']}", 0.0), 1) for mp in models_precip]
-            if mmvals:
-                srt = sorted(mmvals)
-                mid = len(srt) // 2
-                d['prec_median'] = round(srt[mid] if len(srt) % 2 else (srt[mid - 1] + srt[mid]) / 2, 1)
-            d['prec_models'] = {mp['model']: round(d.get(f"mm_{mp['model']}", 0.0), 1)
-                                for mp in models_precip}
 
         data = {
             'times': times, 'watts': watts,

@@ -27,6 +27,14 @@ async function update24(w) {
     if (times[i] > now) { i0 = i; break; }
   }
   const i1 = Math.min(times.length - 1, i0 + 23);
+  const pModels = w.hourly.precip_models || [];
+  const medianPrec = (i) => {
+    const nums = pModels.map((m) => m.prec ? m.prec[i] : null).filter((v) => v != null).map(Number);
+    if (!nums.length) return w.hourly.precip[i];
+    const srt = nums.slice().sort((a, b) => a - b);
+    const mid = Math.floor(srt.length / 2);
+    return srt.length % 2 ? srt[mid] : (srt[mid - 1] + srt[mid]) / 2;
+  };
   const hours = [];
   for (let i = i0; i <= i1; i++) {
     hours.push({
@@ -34,7 +42,7 @@ async function update24(w) {
       label: new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit' }) + 'h',
       day: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }),
       temp: w.hourly.temp[i], wind: w.hourly.wind[i], gust: w.hourly.gusts[i],
-      cloud: w.hourly.cloud[i], prec: w.hourly.precip[i], precP: w.hourly.precip_prob[i],
+      cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
     });
   }
@@ -68,10 +76,15 @@ function updateTiles(w) {
   const warnRain = Number(w.warn_rain_mm || 20);
   const tiles = days.map((d) => {
     // Eigene Unwetter-Kennung (KEINE offizielle Behördenwarnung!):
-    // Schwellenwerte aus pv.json (warn_gust_kmh / warn_rain_mm)
+    // Schwellenwerte aus pv.json (warn_gust_kmh / warn_rain_mm);
+    // Regen = MEDIAN über die Modelle (pv.json: rain_models) - Ausreißer
+    // (z.B. ICON-Spitzen) zählen nicht doppelt.
+    const rainMedian = (d.prec_median != null) ? Number(d.prec_median)
+      : (d.prec_mm != null ? Number(d.prec_mm) : null);
+    const modelsStr = d.prec_models ? Object.values(d.prec_models).map((v) => v).join(' / ') : '';
     const triggers = [];
     if (d.gust != null && d.gust >= warnGust) triggers.push(`Böen ${d.gust} km/h`);
-    if (d.prec_mm != null && d.prec_mm >= warnRain) triggers.push(`Regen ${d.prec_mm} mm`);
+    if (rainMedian != null && rainMedian >= warnRain) triggers.push(`Regen ${rainMedian} mm`);
     const warn = triggers.length > 0;
     const warnText = warn ? `⚠ UNWETTER: ${triggers.join(' · ')}` : '';
     const dt = new Date(d.date + 'T12:00:00');
@@ -81,7 +94,8 @@ function updateTiles(w) {
       <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
       ${warn ? `<div class="w-warn">${warnText}</div>` : ''}      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
       <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max ?? '–'}</div>
-      <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${d.prec_mm ?? '–'} mm / ${d.prec_prob ?? '–'} %</div>
+      <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${rainMedian == null ? '–' : rainMedian.toFixed(1)} mm / ${d.prec_prob ?? '–'} %</div>
+      ${modelsStr ? `<div class="w-row dim">Modelle: ${modelsStr} mm</div>` : ''}
       <div class="w-row">💨 ${d.wind ?? '–'} / ${d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>

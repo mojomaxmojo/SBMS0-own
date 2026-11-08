@@ -225,6 +225,53 @@ def _weather_dataset():
         def h_field(name):
             return hourly.get(name, [None] * len(times))
 
+        # --- Multi-Modell-Regenvergleich (Schwellwerte/Median, pv.json: rain_models) ---
+        import datetime as _dt
+        models_list = [m.strip() for m in str(cfg.get('rain_models', '') or '').split(',') if m.strip()]
+        models_precip = []     # [{'model': name, 'prec': [mm je Stunde, an times ausgerichtet]}]
+        models_daily = {}      # {model: {tag: mm}}
+        if models_list:
+            try:
+                try:
+                    from zoneinfo import ZoneInfo
+                    ltz_mm = ZoneInfo(cfg.get('timezone', 'Europe/Lisbon'))
+                except Exception:
+                    ltz_mm = _dt.timezone.utc
+                r2 = requests.get(
+                    'https://api.open-meteo.com/v1/forecast',
+                    params={
+                        'latitude': cfg.get('latitude'),
+                        'longitude': cfg.get('longitude'),
+                        'hourly': 'precipitation',
+                        'past_days': 7, 'forecast_days': 7,
+                        'timezone': 'UTC', 'models': ','.join(models_list),
+                    },
+                    timeout=25,
+                )
+                r2.raise_for_status()
+                blocks = r2.json()
+                if isinstance(blocks, dict):
+                    blocks = [blocks]
+                for blk in blocks:
+                    mname = str(blk.get('model') or '?')
+                    h2 = blk.get('hourly') or {}
+                    lmap = {}
+                    mdays = {}
+                    for t2, v2 in zip(h2.get('time', []), h2.get('precipitation', [])):
+                        dt2 = _dt.datetime.strptime(t2, '%Y-%m-%dT%H:%M').replace(tzinfo=_dt.timezone.utc)
+                        loc = dt2.astimezone(ltz_mm)
+                        liso = loc.strftime('%Y-%m-%dT%H:%M')
+                        lmap[liso] = v2
+                        day = loc.strftime('%Y-%m-%d')
+                        mdays[day] = mdays.get(day, 0.0) + float(v2 or 0)
+                    models_precip.append({
+                        'model': mname,
+                        'prec': [lmap.get(t) for t in times],
+                    })
+                    models_daily[mname] = mdays
+            except (requests.RequestException, ValueError):
+                pass   # Modell-Call fehlgeschlagen -> Kacheln zeigen best_match weiter
+
         # Tages-Zusammenfassung aus den lokalen Stunden (Tagesgrenzen lokal!)
         daily_map = {}
         for i, t in enumerate(times):
@@ -235,6 +282,10 @@ def _weather_dataset():
                 'tmax': None, 'tmin': None, 'vis': [], 'rh': [],
             })
             d['kwh'] += watts[i] / 1000.0
+            for mp in models_precip:
+                v = mp['prec'][i]
+                key = f"mm_{mp['model']}"
+                d[key] = d.get(key, 0.0) + float(v or 0)
             uv, cl = h_field('uv_index')[i], h_field('cloud_cover')[i]
             pr_mm, pr_p = h_field('precipitation')[i], h_field('precipitation_probability')[i]
             wd, wg = h_field('wind_speed_10m')[i], h_field('wind_gusts_10m')[i]
@@ -300,6 +351,14 @@ def _weather_dataset():
                 'sunset': (s.get('sunset') or '')[11:16],
                 'dir': s.get('dir'),
             })
+            # Multi-Modell-Regen: Einzelwerte + Median
+            mmvals = [round(d.get(f"mm_{mp['model']}", 0.0), 1) for mp in models_precip]
+            if mmvals:
+                srt = sorted(mmvals)
+                mid = len(srt) // 2
+                d['prec_median'] = round(srt[mid] if len(srt) % 2 else (srt[mid - 1] + srt[mid]) / 2, 1)
+            d['prec_models'] = {mp['model']: round(d.get(f"mm_{mp['model']}", 0.0), 1)
+                                for mp in models_precip}
 
         data = {
             'times': times, 'watts': watts,
@@ -314,6 +373,7 @@ def _weather_dataset():
                 'wind': h_field('wind_speed_10m'),
                 'gusts': h_field('wind_gusts_10m'),
                 'wdir': h_field('wind_direction_10m'),
+                'precip_models': models_precip,
             },
             'daily': daily,
             'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),

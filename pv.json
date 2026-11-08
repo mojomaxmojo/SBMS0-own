@@ -34,6 +34,12 @@
     "                       Gross/Klein egal). Match gegen areaDesc des IPMA-Feeds",
     "                       (z.B. 'Faro' = Distrikt). Mobile Anlage: hier den",
     "                       aktuellen Distrikt eintragen.",
+    "rain_models:           Multi-Modell-Regenvergleich (kommasepariert, open-meteo",
+    "                       Modell-IDs). Median zählt für Anzeige/Warnung:",
+    "                       dwd_icon = DWD ICON (best_match, aktuell)",
+    "                       ecmwf_ifs025 = ECMWF (≈ Foreca)",
+    "                       dmi_seamless = HARMONIE-AROME 2.5km (≈ met.no)",
+    "                       weitere: knmi_seamless, gfs_seamless, meteofrance_seamless",
     "service:              open-meteo"
   ],
 
@@ -57,6 +63,7 @@
   "warn_gust_kmh": 70,
   "warn_rain_mm": 30,
   "alert_areas": "Faro, Algarve",
+  "rain_models": "dwd_icon,ecmwf_ifs025,dmi_seamless",
   "timezone": "Europe/Lisbon",
   "forecast_days": 7,
   "last_cleaned": "",

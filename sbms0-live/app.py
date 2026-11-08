@@ -62,22 +62,25 @@ _ALERTS_CACHE = {'ts': 0, 'data': None}
 ALERTS_TTL = 30 * 60
 
 _LEVEL_MAP = {'minor': ('Gelb', '#f2cc0c'),
-              'moderate': ('Orange', '#ff9830'),
-              'severe': ('Rot', '#f2495c'),
+              'moderate': ('Gelb', '#f2cc0c'),
+              'severe': ('Orange', '#ff9830'),
               'extreme': ('Rot', '#f2495c')}
 
 
 def _alerts_dataset():
     """Offizielle Wetterwarnungen (MeteoAlarm, gespeist von IPMA) für
-    Portugal, gefiltert auf Algarve/Faro. 30-min-Cache; Fehler -> leer."""
+    Faro/Algarve. Feed: feeds.meteoalarm.org/api/v1/warnings/feeds-portugal
+    (CAP-Struktur: warnings[].alert.info[]). Nur AKTUELLE Warnungen
+    (expires >= jetzt). 30-min-Cache; Feed-Fehler -> leer."""
     import time as _time
+    import datetime as _dt
     now = _time.time()
     if _ALERTS_CACHE['data'] is not None and now - _ALERTS_CACHE['ts'] < ALERTS_TTL:
         return _ALERTS_CACHE['data'], None
     try:
         r = requests.get(
-            'https://feeds.meteoalarm.org/api/v1/warnings/feeds/portugal',
-            timeout=15,
+            'https://feeds.meteoalarm.org/api/v1/warnings/feeds-portugal',
+            timeout=20,
         )
         r.raise_for_status()
         raw = r.json()
@@ -86,23 +89,33 @@ def _alerts_dataset():
 
     alerts = []
     try:
-        features = raw.get('features') or []
-        for f in features:
-            p = f.get('properties', {}) or {}
-            area = str(p.get('areaName') or p.get('area') or '')
-            if not any(k in area.lower() for k in ('algarve', 'faro')):
-                continue
-            sev = str(p.get('severity') or '').lower()
-            level, color = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c'))
-            alerts.append({
-                'event': p.get('event') or 'Wetterwarnung',
-                'level': level,
-                'color': color,
-                'from': (p.get('effective') or p.get('onset') or '')[:16].replace('T', ' '),
-                'to': (p.get('expires') or '')[:16].replace('T', ' '),
-                'area': area,
-                'text': (p.get('description') or '')[:300],
-            })
+        now_dt = _dt.datetime.now(_dt.timezone.utc)
+        for entry in raw.get('warnings', []):
+            alert = entry.get('alert') or {}
+            for info in alert.get('info', []) or []:
+                areas = [a.get('areaDesc', '') for a in (info.get('area') or [])]
+                if not any(('faro' in a.lower() or 'algarve' in a.lower()) for a in areas):
+                    continue
+                expires = info.get('expires', '')
+                try:
+                    exp = _dt.datetime.fromisoformat(expires)
+                    if exp.tzinfo is None:
+                        exp = exp.replace(tzinfo=_dt.timezone.utc)
+                    if exp < now_dt:
+                        continue   # abgelaufen
+                except ValueError:
+                    pass
+                sev = str(info.get('severity') or '').lower()
+                level, color = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c'))
+                alerts.append({
+                    'event': info.get('event') or info.get('headline') or 'Wetterwarnung',
+                    'level': level,
+                    'color': color,
+                    'from': (info.get('onset') or '')[:16].replace('T', ' '),
+                    'to': expires[:16].replace('T', ' '),
+                    'area': ' / '.join(a for a in areas if a),
+                    'text': (info.get('description') or '')[:300],
+                })
     except (TypeError, KeyError, ValueError):
         pass
     _ALERTS_CACHE['ts'] = now

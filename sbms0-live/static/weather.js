@@ -28,20 +28,23 @@ async function update24(w) {
   }
   const i1 = Math.min(times.length - 1, i0 + 23);
   const pModels = w.hourly.precip_models || [];
-  const medianPrec = (i) => {
-    const nums = pModels.map((m) => m.prec ? m.prec[i] : null).filter((v) => v != null).map(Number);
-    if (!nums.length) return w.hourly.precip[i];
+  const medianOf = (getVal, i, fallback) => {
+    const nums = pModels.map((m) => getVal(m, i)).filter((v) => v != null).map(Number);
+    if (!nums.length) return fallback(i);
     const srt = nums.slice().sort((a, b) => a - b);
     const mid = Math.floor(srt.length / 2);
     return srt.length % 2 ? srt[mid] : (srt[mid - 1] + srt[mid]) / 2;
   };
+  const medianPrec = (i) => medianOf((m, j) => m.prec ? m.prec[j] : null, i, (j) => w.hourly.precip[j]);
+  const medianWind = (i) => medianOf((m, j) => m.wind ? m.wind[j] : null, i, (j) => w.hourly.wind[j]);
+  const medianGust = (i) => medianOf((m, j) => m.gust ? m.gust[j] : null, i, (j) => w.hourly.gusts[j]);
   const hours = [];
   for (let i = i0; i <= i1; i++) {
     hours.push({
       t: times[i],
       label: new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit' }) + 'h',
       day: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }),
-      temp: w.hourly.temp[i], wind: w.hourly.wind[i], gust: w.hourly.gusts[i],
+      temp: w.hourly.temp[i], wind: medianWind(i), gust: medianGust(i),
       cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
     });

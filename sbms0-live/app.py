@@ -171,6 +171,15 @@ def _alerts_dataset():
     return alerts, None
 
 
+# Median-Helfer (Modul-Ebene, auch für stündliche Median-Felder)
+def _med(vals):
+    s = sorted(v for v in vals if v is not None)
+    if not s:
+        return None
+    m = len(s) // 2
+    return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
+
+
 # EIN Open-Meteo-Call fuer ALLES: 7 Tage zurueck + 7 Tage vor (15 Tage stündlich)
 _WEATHER_CACHE = {'ts': 0, 'data': None}
 WEATHER_TTL = 30 * 60
@@ -400,6 +409,15 @@ def _weather_dataset():
                 'wind_models': d.get('wind_models'),
             })
 
+        # Stündliche Median-Werte über die Modelle (für den 24-h-Chart) -
+        # konsistent mit den Tages-Kacheln (gleiche Modell-Familie)
+        n_hours = len(times)
+        med = {'precip': [], 'wind': [], 'gusts': []}
+        for i in range(n_hours):
+            med['precip'].append(round(_med([mp['prec'][i] for mp in models_precip]) or 0, 2))
+            med['wind'].append(round(_med([mp['wind'][i] for mp in models_precip]) or 0, 1))
+            med['gusts'].append(round(_med([mp['gust'][i] for mp in models_precip]) or 0, 1))
+
         data = {
             'times': times, 'watts': watts,
             'hourly': {
@@ -414,6 +432,7 @@ def _weather_dataset():
                 'gusts': h_field('wind_gusts_10m'),
                 'wdir': h_field('wind_direction_10m'),
                 'precip_models': models_precip,
+                'med': med,
             },
             'daily': daily,
             'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),

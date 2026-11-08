@@ -438,6 +438,7 @@ def _weather_dataset():
             'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),
             'warn_gust': float(cfg.get('warn_gust_kmh', 60) or 60),
             'warn_rain_mm': float(cfg.get('warn_rain_mm', 20) or 20),
+            'warn_gust_hourly': float(cfg.get('warn_gust_hourly_kmh', 60) or 60),
             'fetched_at': int(now),
         }
     except (KeyError, TypeError, ValueError) as e:

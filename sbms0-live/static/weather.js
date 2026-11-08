@@ -50,11 +50,14 @@ async function update24(w) {
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
     });
   }
+  const warnGustHourly = Number(w.warn_gust_hourly || 60);
   const isNow = (t) => t <= now && now < t + 3600e3;
   const tiles = hours.map((h) => {
     const nowCls = isNow(h.t) ? ' now' : '';
     const precCls = (h.prec != null && h.prec > 0) ? ' rain' : '';
-    return `<div class="h-hour${nowCls}${precCls}">
+    // Oranger Rahmen: Median-Böen der Stunde über der Schwelle (pv.json warn_gust_hourly_kmh)
+    const gustCls = (h.gust != null && warnGustHourly > 0 && Number(h.gust) >= warnGustHourly) ? ' gust-warn' : '';
+    return `<div class="h-hour${nowCls}${precCls}${gustCls}">
       <div class="h-time">${h.day} ${h.label}</div>
       <div class="h-temp">🌡 ${h.temp == null ? '–' : Number(h.temp).toFixed(0)}°C</div>
       <div class="h-row">💨 ${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}</div>

@@ -524,7 +524,8 @@ def _weather_dataset():
                     continue
                 dt3 = _dt3.datetime.strptime(t3[:16], '%Y-%m-%dT%H:%M').replace(
                     tzinfo=_dt3.timezone.utc).astimezone(ltz)
-                key3 = dt3.strftime('%Y-%m-%dT%H:%M')                d3 = e3.get('data') or {}
+                key3 = dt3.strftime('%Y-%m-%dT%H:%M')
+                d3 = e3.get('data') or {}
                 inst = (d3.get('instant') or {}).get('details') or {}
                 n1 = d3.get('next_1_hours') or {}
                 det = n1.get('details') or {}

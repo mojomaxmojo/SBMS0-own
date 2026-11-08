@@ -410,3 +410,7 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 }
 .alert-banner .alert-title { font-weight: 800; }
 .alert-banner .alert-time { color: rgba(255,255,255,0.85); font-size: 0.9rem; }
+
+/* --- WETTER: 7-Tage-Kacheln als Flex-Reihe (überschreibt .grid-Raster) --- */
+#wtiles { display: flex; gap: 8px; padding: 8px 2px; }
+#wtiles .fc-day { flex: 1 1 0; min-width: 0; }

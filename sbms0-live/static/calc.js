@@ -13,14 +13,14 @@ const FROM_TODAY = () => `time > ${_startOfDayTs()}`;
 // kWh = mean(W) × Stunden-seit-Mitternacht / 1000 (Multiplikation in updateEnergy)
 const _HOURS_TODAY = () => (Date.now() - _startOfDayTs() / 1e6) / 3600e3;
 
-// Erzeugt/Verbraucht: Mittelwert über ALLE Punkte × Stunden ist korrekt.
-// Geladen/Entladen: q wird nicht genutzt (stündliche Zählvariante, s. unten) -
-// die Einträge dienen nur als Bar-Definitionen (Reihenfolge/Farbe).
+// Erzeugt/Verbraucht: INTEGRAL() interpoliert über Datenpausen (nachts Wyse aus
+// -> letzte/erste Punkte sind 0 W -> Nacht integriert zu null, korrekt).
+// "mean × Gesamtstunden" wäre FALSCH, wenn der Tag nicht durchgehend Daten hat!
 const Q_ENERGY = [
-  { alias: 'Erzeugt',   color: '#73bf69', q: () => `SELECT mean("PV Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}` },
+  { alias: 'Erzeugt',   color: '#73bf69', q: () => `SELECT integral("PV Power W")/3600/1000 AS v FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}` },
   { alias: 'Geladen',   color: '#f2cc0c', q: null },
   { alias: 'Entladen',  color: '#f2495c', q: null },
-  { alias: 'Verbraucht',color: '#ff9830', q: () => `SELECT mean("Consumption Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}` },
+  { alias: 'Verbraucht',color: '#ff9830', q: () => `SELECT integral("Consumption Power W")/3600/1000 AS v FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}` },
 ];
 
 // Geladen/Entladen: Subset-Mittel × Gesamtstunden wäre FALSCH (Anteil der
@@ -63,7 +63,7 @@ async function updateEnergy() {
       let v = null;
       if (row) for (const k in row) { if (k !== 'time') { v = row[k]; break; } }
       if (v == null) { b.val.textContent = '–'; continue; }
-      const kwh = Number(v) * _HOURS_TODAY() / 1000;
+      const kwh = Number(v);   // INTEGRAL liefert bereits kWh
       setLedBar(b.leds, 0, 7, [[0, [0x73,0xbf,0x69]], [7, [0xf2,0x49,0x5c]]], Math.min(kwh, 7),
         () => hexToRgbArr(b.def.color));
       b.val.textContent = fmtKwh(kwh);

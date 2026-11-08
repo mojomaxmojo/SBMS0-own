@@ -39,11 +39,13 @@ const Q_FLOW = (ivl) =>
   `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} GROUP BY time(${ivl}m) fill(null)`;
 
 // Stats als Funktionen – Template-Literale würden den Zeitraum beim Script-Start einfrieren!
-// WICHTIG: mean() statt sum() – der Logger schreibt nur bei frischen Serial-Daten
-// (~0.7 Hz), eine Punktsumme würde Pausen als "keine Energie" zaehlen.
-// mean(W) × Zeitraum-Stunden / 1000 = kWh (Rechnung in JS, s. updateStats)
-const Q_PV_KWH = () => `SELECT mean("PV Power W") AS v FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
-const Q_LOAD_KWH = () => `SELECT mean("Consumption Power W") AS v FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
+// WICHTIG: INTEGRAL() statt sum()/mean: Der Logger schreibt nur bei frischen
+// Serial-Daten (~0.7 Hz) und nachts ist die Wyse aus (keine Punkte).
+// - sum()       würde Pausen als "keine Energie" zaehlen
+// - mean×Std    würde nachtlose Stunden mit Tagesmittel bepreisen (Fehler!)
+// - INTEGRAL    interpoliert linear; nachts (0 W -> 0 W) integriert das zu null.
+const Q_PV_KWH = () => `SELECT integral("PV Power W")/3600/1000 AS v FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
+const Q_LOAD_KWH = () => `SELECT integral("Consumption Power W")/3600/1000 AS v FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
 const Q_CELLMINS = () => `SELECT min("Cell 1") AS c1, min("Cell 2") AS c2, min("Cell 3") AS c3, min("Cell 4") AS c4, min("Cell 5") AS c5, min("Cell 6") AS c6, min("Cell 7") AS c7, min("Cell 8") AS c8 FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
 const Q_DELTA = () => `SELECT min("Cell Delta") * 1000 AS v FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
 
@@ -328,16 +330,13 @@ async function updateStats() {
   try {
     const pv = await fetchRow(Q_PV_KWH());
     const v = val(pv);
-    // mean(W) × Stunden / 1000 = kWh (Logger schreibt ~0.7 Hz -> keine Punktsumme!)
-    const kwh = v == null ? null : Number(v) * (range.hours) / 1000;
-    $('stat-pv').firstChild.textContent = kwh == null ? '–' : kwh.toFixed(2);
+    $('stat-pv').firstChild.textContent = v == null ? '–' : Number(v).toFixed(2);
   } catch (e) { $('stat-pv').firstChild.textContent = '–'; }
 
   try {
     const lo = await fetchRow(Q_LOAD_KWH());
     const v = val(lo);
-    const kwh = v == null ? null : Number(v) * (range.hours) / 1000;
-    $('stat-load').firstChild.textContent = kwh == null ? '–' : kwh.toFixed(2);
+    $('stat-load').firstChild.textContent = v == null ? '–' : Number(v).toFixed(2);
   } catch (e) { $('stat-load').firstChild.textContent = '–'; }
 
   const cm = await fetchRow(Q_CELLMINS());

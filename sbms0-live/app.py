@@ -66,6 +66,28 @@ _LEVEL_MAP = {'minor': ('Gelb', '#f2cc0c', '#333333'),
               'severe': ('Orange', '#ff9830', '#ffffff'),
               'extreme': ('Rot', '#f2495c', '#ffffff')}
 
+# Ereignis-Typen (IPMA/MeteoAlarm) -> Deutsch. Der Feed liefert nur PT/EN,
+# daher uebersetzen wir die ART selbst; Beschreibungstext bleibt Englisch
+# (Deutsch wird vom IPMA/MeteoAlarm-Feed nicht bereitgestellt).
+_EVENT_DE = [
+    ('precipitação', 'rain', 'Regen'),
+    ('trovoada', 'thunderstorm', 'Gewitter'),
+    ('vento', 'wind', 'Wind'),
+    ('agitação marítima', 'coastal event', 'Seegang'),
+    ('neve', 'snow', 'Schnee'),
+    ('nevoeiro', 'fog', 'Nebel'),
+    ('temperaturas', 'temperature', 'Temperatur'),
+    ('ciclone', 'cyclone', 'Zyklon'),
+]
+
+
+def _event_de(event, headline):
+    blob = f'{event} {headline}'.lower()
+    for pt, en, de in _EVENT_DE:
+        if pt in blob or en in blob:
+            return de
+    return event
+
 
 def _alerts_dataset():
     """Offizielle Wetterwarnungen (MeteoAlarm, gespeist von IPMA) für
@@ -92,31 +114,40 @@ def _alerts_dataset():
         now_dt = _dt.datetime.now(_dt.timezone.utc)
         for entry in raw.get('warnings', []):
             alert = entry.get('alert') or {}
-            for info in alert.get('info', []) or []:
-                areas = [a.get('areaDesc', '') for a in (info.get('area') or [])]
-                if not any(('faro' in a.lower() or 'algarve' in a.lower()) for a in areas):
-                    continue
-                expires = info.get('expires', '')
-                try:
-                    exp = _dt.datetime.fromisoformat(expires)
-                    if exp.tzinfo is None:
-                        exp = exp.replace(tzinfo=_dt.timezone.utc)
-                    if exp < now_dt:
-                        continue   # abgelaufen
-                except ValueError:
-                    pass
-                sev = str(info.get('severity') or '').lower()
-                level, color, txtcol = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c', '#ffffff'))
-                alerts.append({
-                    'event': info.get('event') or info.get('headline') or 'Wetterwarnung',
-                    'level': level,
-                    'color': color,
-                    'text_color': txtcol,
-                    'from': (info.get('onset') or '')[:16].replace('T', ' '),
-                    'to': expires[:16].replace('T', ' '),
-                    'area': ' / '.join(a for a in areas if a),
-                    'text': (info.get('description') or '')[:300],
-                })
+            # Der Feed liefert pro Warnung zwei info-Eintraege (pt-PT, en-GB)
+            # -> wir nutzen die ENGLISCHE (lesbarer als PT) und uebersetzen
+            # Ereignis-Typ + Stufe selbst auf Deutsch.
+            infos = alert.get('info', []) or []
+            info = next((i for i in infos
+                         if str(i.get('language', '')).startswith('en')), None)
+            if info is None and infos:
+                info = infos[0]
+            if info is None:
+                continue
+            areas = [a.get('areaDesc', '') for a in (info.get('area') or [])]
+            if not any(('faro' in a.lower() or 'algarve' in a.lower()) for a in areas):
+                continue
+            expires = info.get('expires', '')
+            try:
+                exp = _dt.datetime.fromisoformat(expires)
+                if exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=_dt.timezone.utc)
+                if exp < now_dt:
+                    continue   # abgelaufen
+            except ValueError:
+                pass
+            sev = str(info.get('severity') or '').lower()
+            level, color, txtcol = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c', '#ffffff'))
+            alerts.append({
+                'event': _event_de(info.get('event') or '', info.get('headline') or ''),
+                'level': level,
+                'color': color,
+                'text_color': txtcol,
+                'from': (info.get('onset') or '')[:16].replace('T', ' '),
+                'to': expires[:16].replace('T', ' '),
+                'area': ' / '.join(a for a in areas if a),
+                'text': (info.get('description') or '')[:300],
+            })
     except (TypeError, KeyError, ValueError):
         pass
     # Sortierung: aktuell AKTIVE zuerst (jetzt im Zeitfenster), danach

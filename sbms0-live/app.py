@@ -96,7 +96,8 @@ def _alerts_dataset():
     (expires >= jetzt). 30-min-Cache; Feed-Fehler -> leer."""
     import time as _time
     import datetime as _dt
-    cfg = load_pv_config()          # alert_areas aus pv.json / pv.local.json
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))   # alert_areas aus pv.json
     now = _time.time()
     if _ALERTS_CACHE['data'] is not None and now - _ALERTS_CACHE['ts'] < ALERTS_TTL:
         return _ALERTS_CACHE['data'], None

@@ -99,6 +99,9 @@ async function update24(w) {
       cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
       wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
+      metT: (w.hourly.met && w.hourly.met.temp) ? w.hourly.met.temp[i] : null,
+      metW: (w.hourly.met && w.hourly.met.wind) ? w.hourly.met.wind[i] : null,
+      metP: (w.hourly.met && w.hourly.met.prec) ? w.hourly.met.prec[i] : null,
       wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
     });
   }
@@ -118,6 +121,9 @@ async function update24(w) {
       <div class="h-row">🌧 ${h.prec == null ? '–' : Number(h.prec).toFixed(1)} mm / ${h.precP == null ? '–' : Number(h.precP).toFixed(0)} %</div>
       <div class="h-row">☀ UV ${h.uv == null ? '–' : Number(h.uv).toFixed(0)}</div>
       <div class="h-row">💧 ${h.rh == null ? '–' : Number(h.rh).toFixed(0)} % · 👁 ${h.vis == null ? '–' : Number(h.vis).toFixed(0)} km</div>
+      ${(h.metT != null || h.metW != null || h.metP != null)
+        ? `<div class="h-row dim">MET 🌡 ${h.metT == null ? '–' : Number(h.metT).toFixed(0)}° · 💨 ${h.metW == null ? '–' : Number(h.metW).toFixed(0)} · 🌧 ${h.metP == null ? '–' : Number(h.metP).toFixed(1)}</div>`
+        : ''}
     </div>`;
   }).join('');
   $('whours').innerHTML = tiles;

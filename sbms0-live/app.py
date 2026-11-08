@@ -299,6 +299,15 @@ def _weather_dataset():
             except (requests.RequestException, ValueError):
                 pass   # Modell-Call fehlgeschlagen -> Kacheln zeigen best_match weiter
 
+        # WMO-Wettercodes (Gewitter = 95/96/99) je Stunde + Tagesinfo
+        # (VOR der Tages-Auswertung - daily braucht thunder_by_day!)
+        wmo = h_field('weathercode')
+        thunder_by_day = {}   # day -> erster Gewitter-Stunden-Label
+        for i, t in enumerate(times):
+            c = wmo[i]
+            if c is not None and int(c) >= 95:
+                thunder_by_day.setdefault(t[:10], t[11:16])
+
         # Tages-Zusammenfassung aus den lokalen Stunden (Tagesgrenzen lokal!)
         daily_map = {}
         for i, t in enumerate(times):
@@ -418,14 +427,6 @@ def _weather_dataset():
             med['precip'].append(round(_med([mp['prec'][i] for mp in models_precip]) or 0, 2))
             med['wind'].append(round(_med([mp['wind'][i] for mp in models_precip]) or 0, 1))
             med['gusts'].append(round(_med([mp['gust'][i] for mp in models_precip]) or 0, 1))
-
-        # WMO-Wettercodes (Gewitter = 95/96/99) je Stunde + Tagesinfo
-        wmo = h_field('weathercode')
-        thunder_by_day = {}   # day -> erster Gewitter-Stunden-Label
-        for i, t in enumerate(times):
-            c = wmo[i]
-            if c is not None and int(c) >= 95:
-                thunder_by_day.setdefault(t[:10], t[11:16])
 
         data = {
             'times': times, 'watts': watts,

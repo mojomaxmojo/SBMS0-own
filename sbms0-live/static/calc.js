@@ -111,7 +111,7 @@ function hexToRgbArr(hex) {
 /* ---------- Energy flow (heute) – Chart rechts ---------- */
 const Q_FLOW =
   `SELECT mean("PV Power W") AS pv, mean("Consumption Power W") AS cons, mean("Battery Power W") AS bat ` +
-  `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY} GROUP BY time(1m) fill(null)`;
+  `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()} GROUP BY time(1m) fill(null)`;
 
 let flowPlot = null;
 async function updateFlow() {
@@ -220,7 +220,10 @@ async function updateProg(bars, statusQ, statusMsg, panelId) {
       const v = row ? row.v : null;
       if (v == null) { b.val.textContent = '–'; continue; }
       anyData = true;
-      const num = Number(v);
+      let num = Number(v);
+      // Unsinnige Werte abfangen: Bei ~0 A (bewölkt/Ruhe) explodieren die
+      // Prognosen (z.B. 252 d). Alles über 14 Tagen = keine sinnvolle Aussage.
+      if (!isFinite(num) || num > 20160) { b.val.textContent = '–'; continue; }
       setLedBar(b.leds, 0, b.max, b.stops, Math.min(num, b.max));
       b.val.textContent = fmtMin(num);
       // Wert-Farbe wie Grafana-Thresholds
@@ -242,7 +245,7 @@ async function updateProg(bars, statusQ, statusMsg, panelId) {
 /* ---------- Battery Levels (heute) – 2 Achsen ---------- */
 const Q_BATLEVELS =
   `SELECT mean("Battery Voltage") AS volt, mean("State of Charge") AS soc ` +
-  `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY} GROUP BY time(1m) fill(null)`;
+  `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()} GROUP BY time(1m) fill(null)`;
 
 let battPlot = null;
 async function updateBatLevels() {
@@ -292,7 +295,7 @@ async function updateBatLevels() {
 const Q_CELLVERLAUF =
   `SELECT "Cell 1" AS c1, "Cell 2" AS c2, "Cell 3" AS c3, "Cell 4" AS c4, ` +
   `"Cell 5" AS c5, "Cell 6" AS c6, "Cell 7" AS c7, "Cell 8" AS c8 ` +
-  `FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}`;
+  `FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}`;
 
 // Grafana palette-classic Farben
 const PALETTE = ['#73bf69', '#5794f2', '#ff9830', '#f2495c', '#b3d4ff', '#f2cc0c', '#c15ca8', '#8ab8ff'];

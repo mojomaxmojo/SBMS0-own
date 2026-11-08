@@ -151,9 +151,10 @@ window.addEventListener('resize', () => uplotChart && uplotChart.setSize({ width
 let ALARM = { banner_titel: 'BATTERIE-FEHLER', error_flags: [] };
 fetch('/alarm').then((r) => r.ok ? r.json() : null).then((a) => { if (a) ALARM = a; }).catch(() => {});
 
-// Fehler in den letzten 24 h: Summe von Error Active = Anzahl der Fehler-Sekunden
+// Fehler in den letzten 24 h: INTEGRAL statt sum – der Logger schreibt ~0.7 Hz
+// und nachts gar nicht (Wyse aus); integral interpoliert die Fehlerdauer korrekt.
 const Q_ERR24 =
-  "SELECT sum(\"Error Active\") AS n " +
+  "SELECT integral(\"Error Active\") AS n " +
   "FROM \"raw_1s\".\"SBMS_Metrics\" WHERE \"Name\" = 'SBMS0a' AND time > now() - 24h";
 
 /* ---------- 1s-Tick: Live-Werte ---------- */

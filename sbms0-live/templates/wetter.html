@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SBMS0 WETTER</title>
+<link rel="stylesheet" href="/static/uplot.min.css">
+<link rel="stylesheet" href="/static/style.css?v=17">
+</head>
+<body>
+
+<div id="topbar">
+  <div class="nav-links">
+    <a href="/">START</a>
+    <a href="/live">LIVE</a>
+    <a href="/calc">BERECHNUNGEN</a>
+    <a href="/hist">HISTORIE</a>
+    <a href="/prognose">PROGNOSE</a>
+    <a href="/wetter" class="active">WETTER</a>
+  </div>
+  <div class="right">
+    <span id="status">verbinde…</span>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div class="row-title" id="w-headline">Wetter – lade…</div>
+
+<div class="grid">
+  <div class="panel" id="w24-panel">
+    <div class="panel-title">24 h: Ist (Influx) + Vorhersage (Modell) · Temperatur · Wind · Bewölkung</div>
+    <div id="wchart24"></div>
+    <div id="wlegend24"></div>
+  </div>
+</div>
+
+<div class="row-title">7-Tage-Vorhersage</div>
+
+<div class="grid" id="wtiles"></div>
+
+<script src="/static/uplot.iife.min.js"></script>
+<script src="/static/shared.js?v=4"></script>
+<script src="/static/weather.js?v=1"></script>
+</body>
+</html>

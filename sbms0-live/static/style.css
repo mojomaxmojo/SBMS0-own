@@ -354,3 +354,7 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 .fc-day .fc-kwh.mid  { color: #f2cc0c; }
 .fc-day .fc-kwh.poor { color: var(--orange); }
 .fc-day .fc-sub { color: var(--dim); font-size: 11px; margin-top: 4px; }
+
+/* --- WETTER-Seite --- */
+.w-day .w-row { font-size: 12px; color: var(--txt); margin-top: 3px; white-space: nowrap; }
+.w-day .w-row.dim { color: var(--dim); font-size: 11px; }

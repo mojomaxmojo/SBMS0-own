@@ -57,6 +57,163 @@ FC_TTL = 30 * 60
 # Cache fuer den Reinigungs-Hinweis (6 h - Regenbericht aendert sich langsam)
 _RAIN_CACHE = {'ts': 0, 'data': None}
 
+# EIN Open-Meteo-Call fuer ALLES: 7 Tage zurueck + 7 Tage vor (15 Tage stündlich)
+_WEATHER_CACHE = {'ts': 0, 'data': None}
+WEATHER_TTL = 30 * 60
+
+
+def _weather_dataset():
+    """Ein Open-Meteo-Abruf (past_days=7, forecast_days=7) mit allen Feldern;
+    solXcept-Watt werden EINMAL stündlich berechnet. 30-min-Cache."""
+    import time as _time
+    now = _time.time()
+    if _WEATHER_CACHE['data'] is not None and now - _WEATHER_CACHE['ts'] < WEATHER_TTL:
+        return _WEATHER_CACHE['data'], None
+
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    try:
+        r = requests.get(
+            'https://api.open-meteo.com/v1/forecast',
+            params={
+                'latitude': cfg.get('latitude'),
+                'longitude': cfg.get('longitude'),
+                'hourly': 'direct_normal_irradiance,diffuse_radiation,'
+                          'shortwave_radiation,temperature_2m,relative_humidity_2m,'
+                          'visibility,cloud_cover,precipitation,'
+                          'precipitation_probability,uv_index,wind_speed_10m,'
+                          'wind_gusts_10m,wind_direction_10m',
+                'daily': 'sunrise,sunset,sunshine_duration,wind_direction_10m_dominant',
+                'past_days': 7, 'forecast_days': 7,
+                'timezone': 'UTC', 'models': 'best_match',
+            },
+            timeout=25,
+        )
+        r.raise_for_status()
+        raw = r.json()
+    except (requests.RequestException, ValueError) as e:
+        return None, 'Open-Meteo nicht erreichbar: ' + str(e)[:150]
+
+    try:
+        hourly = raw['hourly']
+        import solar as _solar
+        plant = _solar.Plant(cfg)
+        hours = _solar.hourly_watts(
+            plant, hourly['time'],
+            hourly['direct_normal_irradiance'], hourly['diffuse_radiation'],
+            hourly['shortwave_radiation'], hourly['temperature_2m'],
+            cfg.get('timezone', 'Europe/Lisbon'))
+        if not hours:
+            return None, 'Keine Stunden-Daten'
+        times = [t for t, _ in hours]
+        watts = [w for _, w in hours]
+
+        def h_field(name):
+            return hourly.get(name, [None] * len(times))
+
+        # Tages-Zusammenfassung aus den lokalen Stunden (Tagesgrenzen lokal!)
+        daily_map = {}
+        for i, t in enumerate(times):
+            day = t[:10]
+            d = daily_map.setdefault(day, {
+                'kwh': 0.0, 'uv': None, 'cloud': [], 'prec_mm': 0.0,
+                'prec_prob': None, 'wind': None, 'gust': None,
+                'tmax': None, 'tmin': None, 'vis': [], 'rh': [],
+            })
+            d['kwh'] += watts[i] / 1000.0
+            uv, cl = h_field('uv_index')[i], h_field('cloud_cover')[i]
+            pr_mm, pr_p = h_field('precipitation')[i], h_field('precipitation_probability')[i]
+            wd, wg = h_field('wind_speed_10m')[i], h_field('wind_gusts_10m')[i]
+            te, vis, rh = h_field('temperature_2m')[i], h_field('visibility')[i], h_field('relative_humidity_2m')[i]
+            if uv is not None:
+                d['uv'] = max(d['uv'] or 0, float(uv))
+            if cl is not None:
+                d['cloud'].append(float(cl))
+            if pr_mm is not None:
+                d['prec_mm'] += float(pr_mm)
+            if pr_p is not None:
+                p = float(pr_p)
+                d['prec_prob'] = p if d['prec_prob'] is None else max(d['prec_prob'], p)
+            if wd is not None:
+                d['wind'] = float(wd) if d['wind'] is None else max(d['wind'], float(wd))
+            if wg is not None:
+                d['gust'] = float(wg) if d['gust'] is None else max(d['gust'], float(wg))
+            if te is not None:
+                te = float(te)
+                d['tmax'] = te if d['tmax'] is None else max(d['tmax'], te)
+                d['tmin'] = te if d['tmin'] is None else min(d['tmin'], te)
+            if vis is not None:
+                d['vis'].append(float(vis) / 1000.0)
+            if rh is not None:
+                d['rh'].append(float(rh))
+
+        # Sonnenauf/-untergang + Sonnenscheindauer aus daily (UTC -> lokal)
+        import datetime as _dt
+        try:
+            from zoneinfo import ZoneInfo
+            ltz = ZoneInfo(cfg.get('timezone', 'Europe/Lisbon'))
+        except Exception:
+            ltz = _dt.timezone.utc
+        daily_raw = raw.get('daily', {})
+        sun_map = {}
+        for i, dd in enumerate(daily_raw.get('time', [])):
+            day_key = dd  # UTC-Datum == lokales Datum (UTC+0); Sommer: ±1 h tolerated
+            sun_map[day_key] = {
+                'sunrise': daily_raw.get('sunrise', [''])[i],
+                'sunset': daily_raw.get('sunset', [''])[i],
+                'sun_h': round((daily_raw.get('sunshine_duration', [0])[i] or 0) / 3600.0, 1),
+                'dir': daily_raw.get('wind_direction_10m_dominant', [None])[i],
+            }
+
+        daily = []
+        for day, d in sorted(daily_map.items()):
+            s = sun_map.get(day, {})
+            daily.append({
+                'date': day,
+                'kwh': round(d['kwh'], 2),
+                'sun_h': s.get('sun_h'),
+                'uv_max': None if d['uv'] is None else round(d['uv'], 1),
+                'cloud': None if not d['cloud'] else round(sum(d['cloud']) / len(d['cloud']), 0),
+                'prec_mm': round(d['prec_mm'], 1),
+                'prec_prob': d['prec_prob'],
+                'wind': None if d['wind'] is None else round(d['wind'], 0),
+                'gust': None if d['gust'] is None else round(d['gust'], 0),
+                'tmax': None if d['tmax'] is None else round(d['tmax'], 0),
+                'tmin': None if d['tmin'] is None else round(d['tmin'], 0),
+                'vis': None if not d['vis'] else round(sum(d['vis']) / len(d['vis']), 1),
+                'rh': None if not d['rh'] else round(sum(d['rh']) / len(d['rh']), 0),
+                'sunrise': (s.get('sunrise') or '')[11:16],
+                'sunset': (s.get('sunset') or '')[11:16],
+                'dir': s.get('dir'),
+            })
+
+        data = {
+            'times': times, 'watts': watts,
+            'hourly': {
+                'temp': h_field('temperature_2m'),
+                'rh': h_field('relative_humidity_2m'),
+                'vis_km': [None if v is None else round(v / 1000.0, 1) for v in h_field('visibility')],
+                'cloud': h_field('cloud_cover'),
+                'precip': h_field('precipitation'),
+                'precip_prob': h_field('precipitation_probability'),
+                'uv': h_field('uv_index'),
+                'wind': h_field('wind_speed_10m'),
+                'gusts': h_field('wind_gusts_10m'),
+                'wdir': h_field('wind_direction_10m'),
+            },
+            'daily': daily,
+            'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),
+            'fetched_at': int(now),
+        }
+    except (KeyError, TypeError, ValueError) as e:
+        return None, 'Unerwartetes Open-Meteo-Format: ' + str(e)[:150]
+
+    _WEATHER_CACHE['ts'] = now
+    _WEATHER_CACHE['data'] = data
+    return data, None
+# Cache fuer den Reinigungs-Hinweis (6 h - Regenbericht aendert sich langsam)
+_RAIN_CACHE = {'ts': 0, 'data': None}
+
 _ALARM_FALLBACK = {
     'banner_titel': 'BATTERIE-FEHLER',
     'error_flags': ['UVLK', 'OVLK', 'COC', 'DOC', 'DSC', 'OPEN', 'CELF', 'LVC'],
@@ -123,36 +280,13 @@ def pvcompare():
     pr = float(cfg.get('performance_ratio', 1.0) or 1.0)   # Feintune-Faktor
     tzname = cfg.get('timezone', 'Europe/Lisbon')
 
-    # --- Open-Meteo mit past_days=7 (UTC), solXcept-Rueckrechnung ---
-    try:
-        r = requests.get(
-            'https://api.open-meteo.com/v1/forecast',
-            params={
-                'latitude': cfg.get('latitude'),
-                'longitude': cfg.get('longitude'),
-                'hourly': 'direct_normal_irradiance,diffuse_radiation,'
-                          'shortwave_radiation,temperature_2m',
-                'past_days': 7, 'forecast_days': 1,
-                'timezone': 'UTC',
-                'models': 'best_match',
-            },
-            timeout=20,
-        )
-        r.raise_for_status()
-        raw = r.json()
-        hourly = raw['hourly']
-    except (requests.RequestException, ValueError, KeyError) as e:
-        return jsonify({'error': 'Open-Meteo nicht erreichbar: ' + str(e)[:150]}), 502
-
-    import solar as _solar
-    plant = _solar.Plant(cfg)
-    hours = _solar.hourly_watts(
-        plant, hourly['time'],
-        hourly['direct_normal_irradiance'], hourly['diffuse_radiation'],
-        hourly['shortwave_radiation'], hourly['temperature_2m'], tzname)
+    # --- Open-Meteo: gemeinsamer 15-Tage-Datensatz (Cache) ---
+    data, err = _weather_dataset()
+    if err:
+        return jsonify({'error': err}), 502
 
     fc_by_day = {}
-    for t_iso, w in hours:
+    for t_iso, w in zip(data['times'], data['watts']):
         day = t_iso[:10]
         fc_by_day[day] = fc_by_day.get(day, 0.0) + w / 1000.0
 
@@ -227,32 +361,15 @@ def pvhourly():
     if day_dt > today or day_dt < today - timedelta(days=7):
         return jsonify({'error': 'Datum muss innerhalb der letzten 7 Tage liegen'}), 400
 
-    # --- Open-Meteo (past_days=7 deckt den Zeitraum ab) ---
-    try:
-        r = requests.get(
-            'https://api.open-meteo.com/v1/forecast',
-            params={
-                'latitude': cfg.get('latitude'),
-                'longitude': cfg.get('longitude'),
-                'hourly': 'direct_normal_irradiance,diffuse_radiation,'
-                          'shortwave_radiation,temperature_2m',
-                'past_days': 7, 'forecast_days': 1,
-                'timezone': 'UTC', 'models': 'best_match',
-            },
-            timeout=20,
-        )
-        r.raise_for_status()
-        hourly = r.json()['hourly']
-    except (requests.RequestException, ValueError, KeyError) as e:
-        return jsonify({'error': 'Open-Meteo nicht erreichbar: ' + str(e)[:150]}), 502
+    # --- Open-Meteo: gemeinsamer 15-Tage-Datensatz (Cache) ---
+    data, err = _weather_dataset()
+    if err:
+        return jsonify({'error': err}), 502
 
-    import solar as _solar
-    plant = _solar.Plant(cfg)
-    hours = _solar.hourly_watts(
-        plant, hourly['time'],
-        hourly['direct_normal_irradiance'], hourly['diffuse_radiation'],
-        hourly['shortwave_radiation'], hourly['temperature_2m'], tzname)
-    fc_by_hour = {t[11:16]: w for t, w in hours if t[:10] == day}
+    fc_by_hour = {}
+    for t_iso, w in zip(data['times'], data['watts']):
+        if t_iso[:10] == day:
+            fc_by_hour[t_iso[11:16]] = w
 
     # --- Real + SOC aus InfluxDB (Stundenmittel des gewählten Tages) ---
     d_start = int(datetime(day_dt.year, day_dt.month, day_dt.day,
@@ -374,79 +491,65 @@ def pvconfig():
     return jsonify(cfg)
 
 
+@app.route('/wetter')
+def wetter():
+    return send_from_directory('templates', 'wetter.html')
+
+
+@app.route('/weather')
+def weather():
+    """EIN Datensatz (15 Tage stündlich, solXcept-Watt + alle Wetterfelder)
+    für die WETTER-Seite; 30-min-Cache."""
+    import time as _time
+    data, err = _weather_dataset()
+    if err:
+        return jsonify({'error': err}), 502
+    return jsonify(data)
+
+
 @app.route('/forecast')
 def forecast():
-    """PV-Prognose nach solXcept-Modell (solar.py): stündliche Watt +
-    Tages-kWh, 7 Tage. 30-min Prozess-Cache."""
+    """PV-Prognose (7 Tage) aus dem gemeinsamen 15-Tage-Datensatz."""
     import time as _time
-    import json as _json
     from datetime import datetime as _dt
 
     now = _time.time()
-    if _FC_CACHE['data'] is not None and now - _FC_CACHE['ts'] < FC_TTL:
-        return jsonify(_FC_CACHE['data'])
-
     cfg = dict(_PV_FALLBACK)
     cfg.update(load_json_cfg(PV_PATH, {}))
-    days = min(int(cfg.get('forecast_days', 7) or 7), 16)
-    kwp = float(cfg.get('kwp', 0) or 0)
-    pr = float(cfg.get('performance_ratio', 1.0) or 1.0)   # Feintune-Faktor
-    tzname = cfg.get('timezone', 'Europe/Lisbon')
+    data, err = _weather_dataset()
+    if err:
+        return jsonify({'error': err}), 502
 
     try:
-        r = requests.get(
-            'https://api.open-meteo.com/v1/forecast',
-            params={
-                'latitude': cfg.get('latitude'),
-                'longitude': cfg.get('longitude'),
-                'hourly': 'direct_normal_irradiance,diffuse_radiation,'
-                          'shortwave_radiation,temperature_2m',
-                'forecast_days': days,
-                'timezone': 'UTC',
-                'models': 'best_match',
-            },
-            timeout=20,
-        )
-        r.raise_for_status()
-        raw = r.json()
-        hourly = raw['hourly']
-        times_utc = hourly['time']
-        dni = hourly['direct_normal_irradiance']
-        dif = hourly['diffuse_radiation']
-        ghi = hourly['shortwave_radiation']
-        temp = hourly['temperature_2m']
-    except (requests.RequestException, ValueError, KeyError) as e:
-        return jsonify({'error': 'Open-Meteo nicht erreichbar: ' + str(e)[:150]}), 502
+        from zoneinfo import ZoneInfo
+        ltz = ZoneInfo(cfg.get('timezone', 'Europe/Lisbon'))
+    except Exception:
+        ltz = _dt.timezone.utc
+    today = _dt.now(ltz).strftime('%Y-%m-%d')
 
-    import solar as _solar
-    plant = _solar.Plant(cfg)
-    hours = _solar.hourly_watts(plant, times_utc, dni, dif, ghi, temp, tzname)
-    if not hours:
-        return jsonify({'error': 'Keine Stunden-Daten von Open-Meteo'}), 502
+    times, watts, daily = [], [], []
+    for i, t in enumerate(data['times']):
+        if t[:10] >= today:
+            times.append(t)
+            watts.append(data['watts'][i])
+    for d in data['daily']:
+        if d['date'] >= today:
+            daily.append(d)
 
-    watts = [w for _, w in hours]
-    times_local = [t for t, _ in hours]
-
-    # Tages-Summen (kWh) auf lokale Tage
-    daily_map = {}
-    for t_iso, w in hours:
-        day = t_iso[:10]
-        daily_map[day] = daily_map.get(day, 0.0) + w / 1000.0
-    daily = [{'date': d, 'kwh': round(k, 2)} for d, k in sorted(daily_map.items())]
-
-    data = {
+    out = {
         'ort': cfg.get('ort'),
-        'kwp': kwp, 'pr': pr, 'tilt': cfg.get('tilt'),
+        'kwp': float(cfg.get('kwp', 0) or 0),
+        'pr': float(cfg.get('performance_ratio', 1.0) or 1.0),
+        'tilt': cfg.get('tilt'),
         'model': 'solXpect',
         'inverter': f"{cfg.get('inverter_power', 0)} W / {cfg.get('inverter_efficiency', 90)}%",
         'shade_below': cfg.get('shade_below_elevation', 0),
-        'shade_from': cfg.get('shade_from', ''), 'shade_percent': cfg.get('shade_percent', 0),
-        'unit': 'W', 'times': times_local, 'watts': watts, 'daily': daily,
+        'shade_from': cfg.get('shade_from', ''),
+        'shade_percent': cfg.get('shade_percent', 0),
+        'unit': 'W', 'times': times, 'watts': watts, 'daily': daily,
         'fetched_at': int(now),
     }
-    _FC_CACHE['ts'] = now
-    _FC_CACHE['data'] = data
-    return jsonify(data)
+    return jsonify(out)
 
 
 @app.route('/alarm')

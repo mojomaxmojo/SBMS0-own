@@ -70,6 +70,7 @@ apt-get install -y -qq \
   python3-influxdb \
   python3-flask \
   python3-requests \
+  fonts-noto-color-emoji \
   curl gnupg git jq
 
 python3 -c "import serial, influxdb, flask, requests" \

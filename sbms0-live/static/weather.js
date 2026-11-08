@@ -102,7 +102,7 @@ async function update24(w) {
     const wVal = harm && harm.wind && harm.wind[i] != null ? Number(harm.wind[i])
       : (w.hourly.wind[i] != null ? Number(w.hourly.wind[i]) : null);
     let gustTxt;
-    if (gConf === 'low' && gMax != null) gustTxt = `unsicher: bis ${gMax.toFixed(0)}`;
+    if (gConf === 'low' && gMax != null) gustTxt = `${gMin.toFixed(0)}–${gMax.toFixed(0)} (unsicher)`;
     else if (gConf === 'mid' && gMax != null) gustTxt = `${gMin.toFixed(0)}–${gMax.toFixed(0)}`;
     else gustTxt = `${medianGust(i) == null ? '–' : Number(medianGust(i)).toFixed(0)}`;
     hours.push({
@@ -131,7 +131,7 @@ async function update24(w) {
     // Oranger Rahmen: MAX-Böen der Stunde über der Schwelle (pv.json warn_gust_hourly_kmh)
     const gustCls = (warnGustHourly > 0 && h.gMax != null && h.gMax >= warnGustHourly) ? ' gust-warn' : '';
     const gustDisp = (h.gConf === 'low' && h.gMax != null)
-      ? `⚠ unsicher: bis ${h.gMax.toFixed(0)}`
+      ? `⚠ unsicher: ${h.gMin.toFixed(0)}–${h.gMax.toFixed(0)} km/h`
       : (h.gConf === 'mid' && h.gMin != null)
         ? `${h.gMin.toFixed(0)}–${h.gMax.toFixed(0)}`
         : `${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}`;
@@ -207,14 +207,14 @@ function updateTiles(w) {
     // Wind-/Regen-Zeile je Konfidenz
     let gustRow, precRow;
     if (cg.conf === 'low') {
-      gustRow = `💨 unsicher: bis ${d.gust_max ?? harmGust ?? '–'} km/h`;
+      gustRow = `💨 ${d.gust_min}–${d.gust_max} km/h (unsicher)`;
     } else if (cg.conf === 'mid') {
       gustRow = `💨 ${d.gust_min}–${d.gust_max} km/h`;
     } else {
       gustRow = `💨 ${harmWind ?? d.wind ?? '–'} / ${harmGust ?? d.gust ?? '–'} km/h (H)`;
     }
     if (cp.conf === 'low') {
-      precRow = `🌧 unsicher: bis ${d.prec_max ?? '–'} mm`;
+      precRow = `🌧 ${d.prec_min}–${d.prec_max} mm (unsicher)`;
     } else if (cp.conf === 'mid') {
       precRow = `🌧 ${d.prec_min}–${d.prec_max} mm`;
     } else {

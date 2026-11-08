@@ -232,6 +232,13 @@ async function loadPast(cmp, pr) {
 }
 
 /* --- Tagesgang: Prognose vs. Real vs. SOC für einen gewählten Tag --- */
+function fmtWFC(v) {
+  if (v == null) return '–';
+  const a = Math.abs(v);
+  if (a >= 1000) return (v / 1000).toFixed(2) + ' kW';
+  return v.toFixed(0) + ' W';
+}
+
 let tgPlot = null;
 const TG_COLORS = { fc: '#73bf69', real: '#5794f2', soc: '#f2cc0c' };
 

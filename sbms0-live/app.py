@@ -57,6 +57,59 @@ FC_TTL = 30 * 60
 # Cache fuer den Reinigungs-Hinweis (6 h - Regenbericht aendert sich langsam)
 _RAIN_CACHE = {'ts': 0, 'data': None}
 
+# Cache fuer offizielle Wetterwarnungen (MeteoAlarm/IPMA), 30 min
+_ALERTS_CACHE = {'ts': 0, 'data': None}
+ALERTS_TTL = 30 * 60
+
+_LEVEL_MAP = {'minor': ('Gelb', '#f2cc0c'),
+              'moderate': ('Orange', '#ff9830'),
+              'severe': ('Rot', '#f2495c'),
+              'extreme': ('Rot', '#f2495c')}
+
+
+def _alerts_dataset():
+    """Offizielle Wetterwarnungen (MeteoAlarm, gespeist von IPMA) für
+    Portugal, gefiltert auf Algarve/Faro. 30-min-Cache; Fehler -> leer."""
+    import time as _time
+    now = _time.time()
+    if _ALERTS_CACHE['data'] is not None and now - _ALERTS_CACHE['ts'] < ALERTS_TTL:
+        return _ALERTS_CACHE['data'], None
+    try:
+        r = requests.get(
+            'https://feeds.meteoalarm.org/api/v1/warnings/feeds/portugal',
+            timeout=15,
+        )
+        r.raise_for_status()
+        raw = r.json()
+    except (requests.RequestException, ValueError):
+        return [], None   # Feed nicht erreichbar -> keine Warnungen, kein Fehler
+
+    alerts = []
+    try:
+        features = raw.get('features') or []
+        for f in features:
+            p = f.get('properties', {}) or {}
+            area = str(p.get('areaName') or p.get('area') or '')
+            if not any(k in area.lower() for k in ('algarve', 'faro')):
+                continue
+            sev = str(p.get('severity') or '').lower()
+            level, color = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c'))
+            alerts.append({
+                'event': p.get('event') or 'Wetterwarnung',
+                'level': level,
+                'color': color,
+                'from': (p.get('effective') or p.get('onset') or '')[:16].replace('T', ' '),
+                'to': (p.get('expires') or '')[:16].replace('T', ' '),
+                'area': area,
+                'text': (p.get('description') or '')[:300],
+            })
+    except (TypeError, KeyError, ValueError):
+        pass
+    _ALERTS_CACHE['ts'] = now
+    _ALERTS_CACHE['data'] = alerts
+    return alerts, None
+
+
 # EIN Open-Meteo-Call fuer ALLES: 7 Tage zurueck + 7 Tage vor (15 Tage stündlich)
 _WEATHER_CACHE = {'ts': 0, 'data': None}
 WEATHER_TTL = 30 * 60
@@ -203,6 +256,8 @@ def _weather_dataset():
             },
             'daily': daily,
             'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),
+            'warn_gust': float(cfg.get('warn_gust_kmh', 60) or 60),
+            'warn_rain_mm': float(cfg.get('warn_rain_mm', 20) or 20),
             'fetched_at': int(now),
         }
     except (KeyError, TypeError, ValueError) as e:
@@ -211,8 +266,6 @@ def _weather_dataset():
     _WEATHER_CACHE['ts'] = now
     _WEATHER_CACHE['data'] = data
     return data, None
-# Cache fuer den Reinigungs-Hinweis (6 h - Regenbericht aendert sich langsam)
-_RAIN_CACHE = {'ts': 0, 'data': None}
 
 _ALARM_FALLBACK = {
     'banner_titel': 'BATTERIE-FEHLER',
@@ -406,6 +459,13 @@ def pvhourly():
             'soc': soc_by_hour.get(hh),
         })
     return jsonify({'date': day, 'timezone': tzname, 'hours': hours_out})
+
+
+@app.route('/alerts')
+def alerts():
+    """Offizielle Wetterwarnungen (MeteoAlarm/IPMA, Algarve), 30-min-Cache."""
+    alerts, err = _alerts_dataset()
+    return jsonify({'alerts': alerts, 'error': err})
 
 
 @app.route('/rain')

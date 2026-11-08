@@ -64,12 +64,22 @@ function updateTiles(w) {
     return dirs[Math.round(deg / 45) % 8];
   };
   const days = w.daily.filter((d) => d.date >= today);
+  const warnGust = Number(w.warn_gust || 60);
+  const warnRain = Number(w.warn_rain_mm || 20);
   const tiles = days.map((d) => {
+    // Eigene Unwetter-Kennung (KEINE offizielle Behördenwarnung!):
+    // Schwellenwerte aus pv.json (warn_gust_kmh / warn_rain_mm)
+    const triggers = [];
+    if (d.gust != null && d.gust >= warnGust) triggers.push(`Böen ${d.gust} km/h`);
+    if (d.prec_mm != null && d.prec_mm >= warnRain) triggers.push(`Regen ${d.prec_mm} mm`);
+    const warn = triggers.length > 0;
+    const warnText = warn ? `⚠ UNWETTER: ${triggers.join(' · ')}` : '';
     const dt = new Date(d.date + 'T12:00:00');
     const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
     const kwhCls = d.kwh >= 4 ? 'good' : d.kwh >= 1.5 ? 'mid' : 'poor';
-    return `<div class="fc-day w-day">
-      <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
+    return `<div class="fc-day w-day${warn ? ' warn' : ''}">
+      <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
+      ${warn ? `<div class="w-warn">${warnText}</div>` : ''}      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
       <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max ?? '–'}</div>
       <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${d.prec_mm ?? '–'} mm / ${d.prec_prob ?? '–'} %</div>
       <div class="w-row">💨 ${d.wind ?? '–'} / ${d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
@@ -84,9 +94,10 @@ async function load() {
   const status = $('status');
   try {
     status.textContent = 'lade…';
-    const w = await fetchJSON('/weather');
+    const [w, alertsResp] = await Promise.all([fetchJSON('/weather'), fetchJSON('/alerts')]);
     $('w-headline').textContent =
       `Wetter – ${w.ort || ''} · 15 Tage Daten · Update ${new Date(w.fetched_at * 1000).toLocaleTimeString('de-DE')}`;
+    renderAlerts(alertsResp);
     await update24(w);
     updateTiles(w);
     status.textContent = 'Daten OK';
@@ -95,6 +106,19 @@ async function load() {
     status.textContent = 'FEHLER: ' + (e.message || e);
     status.classList.add('err');
   }
+}
+
+/* --- Offizielle Warnungen (MeteoAlarm/IPMA) --- */
+function renderAlerts(resp) {
+  const box = $('alerts-banner');
+  const alerts = resp?.alerts || [];
+  if (!alerts.length) { box.innerHTML = ''; return; }
+  box.innerHTML = alerts.map((a) =>
+    `<div class="alert-banner" style="background:${a.color}">` +
+    `<span class="alert-title">⚠ OFFIZIELLE WARNUNG (${a.level})</span>` +
+    `<span>${a.event} · ${a.area}</span>` +
+    `<span class="alert-time">${a.from} – ${a.to}</span></div>`
+  ).join('');
 }
 
 load();

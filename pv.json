@@ -27,6 +27,9 @@
     "                      Nur als letzte Kalibrierung nutzen - Ist-vs-",
     "                      Prognose schlaegt einen konkreten Wert vor.",
     "timezone:             lokale Zeitzone (Tagesgrenzen + shade_from)",
+    "warn_gust_kmh:        EIGENE Unwetter-Kennung: rote Tages-Kachel ab Windboe X km/h",
+    "warn_rain_mm:         ... oder ab Tages-Regenmenge X mm (Fallback; offizielle",
+    "                       Warnungen kommen zusaetzlich von MeteoAlarm/IPMA)",
     "service:              open-meteo"
   ],
 
@@ -47,6 +50,8 @@
   "shade_percent": 100,
   "shade_from": "",
   "performance_ratio": 1.0,
+  "warn_gust_kmh": 60,
+  "warn_rain_mm": 20,
   "timezone": "Europe/Lisbon",
   "forecast_days": 7,
   "last_cleaned": "",

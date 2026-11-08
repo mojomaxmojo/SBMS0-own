@@ -396,3 +396,17 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 }
 #wtiles .fc-day .w-row { font-size: 13px; white-space: normal; }
 #wtiles .fc-day .fc-kwh { font-size: 1.6rem; }
+
+/* --- Unwetter-Markierung (eigene Kennung aus Böen>=60 / Regen>=20mm) --- */
+#wtiles .fc-day.warn { border-color: var(--red); background: rgba(242,73,92,0.10); }
+#wtiles .fc-day.warn .fc-datel { color: var(--red); }
+.w-warn { color: var(--red); font-weight: 700; font-size: 12px; margin: 2px 0 4px; }
+
+/* --- Offizielle Warnbanner (MeteoAlarm/IPMA) --- */
+.alert-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  color: #fff; padding: 10px 16px; border-radius: 4px; margin-bottom: 8px;
+  font-size: 1.05rem;
+}
+.alert-banner .alert-title { font-weight: 800; }
+.alert-banner .alert-time { color: rgba(255,255,255,0.85); font-size: 0.9rem; }

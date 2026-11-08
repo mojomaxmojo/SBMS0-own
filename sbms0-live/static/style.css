@@ -420,3 +420,4 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 .w-day { white-space: nowrap; overflow: hidden; }
 .w-day .w-warn { white-space: nowrap; }
 .w-day .w-row.warn2 { color: #f2cc0c; font-weight: 600; }
+.h-hour .h-wtxt { color: var(--dim); font-size: 11px; margin-top: 2px; }

@@ -33,6 +33,34 @@ function wmoIcon(c) {
   return '';
 }
 
+function wmoText(c) {
+  if (c == null) return '';
+  c = Number(c);
+  if (c === 0) return 'Klar';
+  if (c === 1) return 'Überw. klar';
+  if (c === 2) return 'Heiter';
+  if (c === 3) return 'Bedeckt';
+  if (c === 45 || c === 48) return 'Nebel';
+  if (c === 51 || c === 53 || c === 55) return 'Niesel';
+  if (c === 56 || c === 57) return 'Gefr. Niesel';
+  if (c === 61) return 'Leichter Regen';
+  if (c === 63) return 'Regen';
+  if (c === 65) return 'Starker Regen';
+  if (c === 66 || c === 67) return 'Gefr. Regen';
+  if (c === 71) return 'Leichter Schnee';
+  if (c === 73) return 'Schnee';
+  if (c === 75) return 'Starker Schnee';
+  if (c === 77) return 'Schneegriesel';
+  if (c === 80) return 'Leichte Schauer';
+  if (c === 81) return 'Schauer';
+  if (c === 82) return 'Heftige Schauer';
+  if (c === 85 || c === 86) return 'Schneeschauer';
+  if (c === 95) return 'Gewitter';
+  if (c === 96) return 'Gewitter + Hagel';
+  if (c === 99) return 'Schw. Gewitter + Hagel';
+  return 'Wetter ' + c;
+}
+
 /* --- 24 h: stündliche Kacheln ab aktueller Stunde (kein Diagramm) --- */
 async function update24(w) {
   const now = Date.now();
@@ -66,6 +94,7 @@ async function update24(w) {
       cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
       wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
+      wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
     });
   }
   const warnGustHourly = Number(w.warn_gust_hourly || 60);
@@ -77,6 +106,7 @@ async function update24(w) {
     const gustCls = (h.gust != null && warnGustHourly > 0 && Number(h.gust) >= warnGustHourly) ? ' gust-warn' : '';
     return `<div class="h-hour${nowCls}${precCls}${gustCls}">
       <div class="h-time">${wmoIcon(h.wmo)} ${h.day} ${h.label}</div>
+      ${h.wtxt ? `<div class="h-wtxt">${h.wtxt}</div>` : ''}
       <div class="h-temp">🌡 ${h.temp == null ? '–' : Number(h.temp).toFixed(0)}°C</div>
       <div class="h-row">💨 ${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}</div>
       <div class="h-row">☁ ${h.cloud == null ? '–' : Number(h.cloud).toFixed(0)} %</div>

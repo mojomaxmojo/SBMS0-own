@@ -205,7 +205,7 @@ def _weather_dataset():
                           'shortwave_radiation,temperature_2m,relative_humidity_2m,'
                           'visibility,cloud_cover,precipitation,'
                           'precipitation_probability,uv_index,wind_speed_10m,'
-                          'wind_gusts_10m,wind_direction_10m',
+                          'wind_gusts_10m,wind_direction_10m,weathercode',
                 'daily': 'sunrise,sunset,sunshine_duration,wind_direction_10m_dominant',
                 'past_days': 7, 'forecast_days': 7,
                 'timezone': 'UTC', 'models': 'best_match',
@@ -402,6 +402,7 @@ def _weather_dataset():
                 'sunrise': (s.get('sunrise') or '')[11:16],
                 'sunset': (s.get('sunset') or '')[11:16],
                 'dir': s.get('dir'),
+                'thunder_first': thunder_by_day.get(day),
                 'prec_median': d.get('prec_median'),
                 'prec_models': d.get('prec_models'),
                 'wind_median': d.get('wind_median'),
@@ -418,10 +419,19 @@ def _weather_dataset():
             med['wind'].append(round(_med([mp['wind'][i] for mp in models_precip]) or 0, 1))
             med['gusts'].append(round(_med([mp['gust'][i] for mp in models_precip]) or 0, 1))
 
+        # WMO-Wettercodes (Gewitter = 95/96/99) je Stunde + Tagesinfo
+        wmo = h_field('weathercode')
+        thunder_by_day = {}   # day -> erster Gewitter-Stunden-Label
+        for i, t in enumerate(times):
+            c = wmo[i]
+            if c is not None and int(c) >= 95:
+                thunder_by_day.setdefault(t[:10], t[11:16])
+
         data = {
             'times': times, 'watts': watts,
             'hourly': {
                 'temp': h_field('temperature_2m'),
+                'wmo': wmo,
                 'rh': h_field('relative_humidity_2m'),
                 'vis_km': [None if v is None else round(v / 1000.0, 1) for v in h_field('visibility')],
                 'cloud': h_field('cloud_cover'),

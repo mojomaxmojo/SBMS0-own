@@ -16,6 +16,23 @@ async function fetchJSON(url) {
   return await r.json();
 }
 
+/* WMO-Wettercodes -> Icon (95/96/99 = Gewitter) */
+function wmoIcon(c) {
+  if (c == null) return '';
+  c = Number(c);
+  if (c === 0) return '☀️';
+  if (c <= 2) return '🌤️';
+  if (c === 3) return '☁️';
+  if (c === 45 || c === 48) return '🌫️';
+  if (c >= 51 && c <= 57) return '🌦️';
+  if (c >= 61 && c <= 67) return '🌧️';
+  if (c >= 71 && c <= 77) return '🌨️';
+  if (c >= 80 && c <= 82) return '🌦️';
+  if (c >= 85 && c <= 86) return '🌨️';
+  if (c >= 95) return '⛈️';
+  return '';
+}
+
 /* --- 24 h: stündliche Kacheln ab aktueller Stunde (kein Diagramm) --- */
 async function update24(w) {
   const now = Date.now();
@@ -48,6 +65,7 @@ async function update24(w) {
       temp: w.hourly.temp[i], wind: medianWind(i), gust: medianGust(i),
       cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
+      wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
     });
   }
   const warnGustHourly = Number(w.warn_gust_hourly || 60);
@@ -58,7 +76,7 @@ async function update24(w) {
     // Oranger Rahmen: Median-Böen der Stunde über der Schwelle (pv.json warn_gust_hourly_kmh)
     const gustCls = (h.gust != null && warnGustHourly > 0 && Number(h.gust) >= warnGustHourly) ? ' gust-warn' : '';
     return `<div class="h-hour${nowCls}${precCls}${gustCls}">
-      <div class="h-time">${h.day} ${h.label}</div>
+      <div class="h-time">${wmoIcon(h.wmo)} ${h.day} ${h.label}</div>
       <div class="h-temp">🌡 ${h.temp == null ? '–' : Number(h.temp).toFixed(0)}°C</div>
       <div class="h-row">💨 ${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}</div>
       <div class="h-row">☁ ${h.cloud == null ? '–' : Number(h.cloud).toFixed(0)} %</div>
@@ -112,6 +130,7 @@ function updateTiles(w) {
       <div class="w-row">💨 ${windMedian ?? d.wind ?? '–'} / ${gustMedian ?? d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
+      ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>
     </div>`;
   }).join('');

@@ -242,7 +242,7 @@ def _weather_dataset():
                     params={
                         'latitude': cfg.get('latitude'),
                         'longitude': cfg.get('longitude'),
-                        'hourly': 'precipitation',
+                        'hourly': 'precipitation,wind_speed_10m,wind_gusts_10m',
                         'past_days': 7, 'forecast_days': 7,
                         'timezone': 'UTC', 'models': ','.join(models_list),
                     },
@@ -255,20 +255,36 @@ def _weather_dataset():
                 h2 = j2.get('hourly') or {}
                 for mname in models_list:
                     vals2 = h2.get('precipitation_' + mname)
+                    wvals = h2.get('wind_speed_10m_' + mname)
+                    gvals = h2.get('wind_gusts_10m_' + mname)
                     if vals2 is None:
                         continue   # Modell von der API nicht geliefert
                     lmap = {}
+                    wmap = {}
+                    gmap = {}
                     mdays = {}
-                    for t2, v2 in zip(h2.get('time', []), vals2):
+                    mdays_w = {}
+                    mdays_g = {}
+                    for j3, t2 in enumerate(h2.get('time', [])):
                         dt2 = _dt.datetime.strptime(t2, '%Y-%m-%dT%H:%M').replace(tzinfo=_dt.timezone.utc)
                         loc = dt2.astimezone(ltz_mm)
                         liso = loc.strftime('%Y-%m-%dT%H:%M')
-                        lmap[liso] = v2
                         day = loc.strftime('%Y-%m-%d')
+                        lmap[liso] = vals2[j3] if j3 < len(vals2) else None
+                        if wvals is not None and j3 < len(wvals) and wvals[j3] is not None:
+                            wmap[liso] = float(wvals[j3])
+                            mdays_w[day] = max(mdays_w.get(day, 0.0), float(wvals[j3]))
+                        if gvals is not None and j3 < len(gvals) and gvals[j3] is not None:
+                            gmap[liso] = float(gvals[j3])
+                            mdays_g[day] = max(mdays_g.get(day, 0.0), float(gvals[j3]))
+                        v2 = vals2[j3] if j3 < len(vals2) else None
                         mdays[day] = mdays.get(day, 0.0) + float(v2 or 0)
                     models_precip.append({
                         'model': mname,
                         'prec': [lmap.get(t) for t in times],
+                        'wind': [wmap.get(t) for t in times],
+                        'gust': [gmap.get(t) for t in times],
+                        'mdays_w': mdays_w, 'mdays_g': mdays_g,
                     })
                     models_daily[mname] = mdays
             except (requests.RequestException, ValueError):
@@ -344,6 +360,22 @@ def _weather_dataset():
             d['prec_models'] = {mp['model']: round(d.get(f"mm_{mp['model']}", 0.0), 1)
                                 for mp in models_precip}
 
+            # Wind/Böen: Median der Tages-Maxima über die Modelle
+            def _median(vals):
+                srt = sorted(vals)
+                m = len(srt) // 2
+                return srt[m] if len(srt) % 2 else (srt[m - 1] + srt[m]) / 2
+            gvals_d = [mp['mdays_g'].get(day) for mp in models_precip if mp['mdays_g'].get(day) is not None]
+            wvals_d = [mp['mdays_w'].get(day) for mp in models_precip if mp['mdays_w'].get(day) is not None]
+            if gvals_d:
+                d['gust_median'] = round(_median(gvals_d), 0)
+            if wvals_d:
+                d['wind_median'] = round(_median(wvals_d), 0)
+            d['wind_models'] = {mp['model']: {
+                'wind': round(mp['mdays_w'].get(day, 0.0), 0),
+                'gust': round(mp['mdays_g'].get(day, 0.0), 0),
+            } for mp in models_precip if mp['mdays_w']}
+
             daily.append({
                 'date': day,
                 'kwh': round(d['kwh'], 2),
@@ -363,6 +395,9 @@ def _weather_dataset():
                 'dir': s.get('dir'),
                 'prec_median': d.get('prec_median'),
                 'prec_models': d.get('prec_models'),
+                'wind_median': d.get('wind_median'),
+                'gust_median': d.get('gust_median'),
+                'wind_models': d.get('wind_models'),
             })
 
         data = {

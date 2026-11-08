@@ -81,9 +81,14 @@ function updateTiles(w) {
     // (z.B. ICON-Spitzen) zählen nicht doppelt.
     const rainMedian = (d.prec_median != null) ? Number(d.prec_median)
       : (d.prec_mm != null ? Number(d.prec_mm) : null);
+    const gustMedian = (d.gust_median != null) ? Number(d.gust_median)
+      : (d.gust != null ? Number(d.gust) : null);
+    const windMedian = (d.wind_median != null) ? Number(d.wind_median)
+      : (d.wind != null ? Number(d.wind) : null);
     const modelsStr = d.prec_models ? Object.values(d.prec_models).map((v) => v).join(' / ') : '';
+    const modelsWind = d.wind_models ? Object.values(d.wind_models).map((v) => v.gust).join(' / ') : '';
     const triggers = [];
-    if (d.gust != null && d.gust >= warnGust) triggers.push(`Böen ${d.gust} km/h`);
+    if (gustMedian != null && gustMedian >= warnGust) triggers.push(`Böen ${gustMedian} km/h (Median)`);
     if (rainMedian != null && rainMedian >= warnRain) triggers.push(`Regen ${rainMedian} mm`);
     const warn = triggers.length > 0;
     const warnText = warn ? `⚠ UNWETTER: ${triggers.join(' · ')}` : '';
@@ -95,8 +100,9 @@ function updateTiles(w) {
       ${warn ? `<div class="w-warn">${warnText}</div>` : ''}      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
       <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max ?? '–'}</div>
       <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${rainMedian == null ? '–' : rainMedian.toFixed(1)} mm / ${d.prec_prob ?? '–'} %</div>
-      ${modelsStr ? `<div class="w-row dim">Modelle: ${modelsStr} mm</div>` : ''}
-      <div class="w-row">💨 ${d.wind ?? '–'} / ${d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
+      ${modelsStr ? `<div class="w-row dim">Modelle Regen: ${modelsStr} mm</div>` : ''}
+      ${modelsWind ? `<div class="w-row dim">Modelle Böen: ${modelsWind} km/h</div>` : ''}
+      <div class="w-row">💨 ${windMedian ?? d.wind ?? '–'} / ${gustMedian ?? d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>

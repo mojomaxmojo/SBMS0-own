@@ -293,7 +293,7 @@ def _weather_dataset():
                         'prec': [lmap.get(t) for t in times],
                         'wind': [wmap.get(t) for t in times],
                         'gust': [gmap.get(t) for t in times],
-                        'mdays_w': mdays_w, 'mdays_g': mdays_g,
+                        'mdays': mdays, 'mdays_w': mdays_w, 'mdays_g': mdays_g,
                     })
                     models_daily[mname] = mdays
             except (requests.RequestException, ValueError):

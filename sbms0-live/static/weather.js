@@ -105,7 +105,7 @@ function updateTiles(w) {
     return `<div class="fc-day w-day${warn ? ' warn' : ''}">
       <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
       ${warn ? `<div class="w-warn">${warnText}</div>` : ''}      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
-      <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max ?? '–'}</div>
+      <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max == null ? '–' : Math.round(d.uv_max)}</div>
       <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${rainMedian == null ? '–' : rainMedian.toFixed(1)} mm / ${d.prec_prob ?? '–'} %</div>
       ${modelsStr ? `<div class="w-row dim">Modelle Regen: ${modelsStr} mm</div>` : ''}
       ${modelsWind ? `<div class="w-row dim">Modelle Böen: ${modelsWind} km/h</div>` : ''}

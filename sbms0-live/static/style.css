@@ -417,3 +417,5 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 .alert-banner { flex-wrap: wrap; }
 .alert-banner .alert-desc { flex-basis: 100%; width: 100%; font-size: 0.92rem; line-height: 1.4; white-space: normal; margin-top: 2px; }
 .h-hour.gust-warn { border: 2px solid var(--orange); }
+.w-day { white-space: nowrap; overflow: hidden; }
+.w-day .w-warn { white-space: nowrap; }

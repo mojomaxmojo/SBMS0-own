@@ -119,6 +119,18 @@ def _alerts_dataset():
                 })
     except (TypeError, KeyError, ValueError):
         pass
+    # Sortierung: aktuell AKTIVE zuerst (jetzt im Zeitfenster), danach
+    # zukünftige chronologisch nach Beginn.
+    def _sort_key(a):
+        try:
+            onset = _dt.datetime.fromisoformat(a['from'].replace(' ', 'T'))
+            if onset.tzinfo is None:
+                onset = onset.replace(tzinfo=_dt.timezone.utc)
+        except ValueError:
+            onset = _dt.datetime.max.replace(tzinfo=_dt.timezone.utc)
+        active = onset <= now_dt
+        return (0 if active else 1, onset)
+    alerts.sort(key=_sort_key)
     _ALERTS_CACHE['ts'] = now
     _ALERTS_CACHE['data'] = alerts
     return alerts, None

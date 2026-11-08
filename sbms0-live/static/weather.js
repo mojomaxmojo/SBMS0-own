@@ -114,7 +114,7 @@ function renderAlerts(resp) {
   const alerts = resp?.alerts || [];
   if (!alerts.length) { box.innerHTML = ''; return; }
   box.innerHTML = alerts.map((a) =>
-    `<div class="alert-banner" style="background:${a.color}">` +
+    `<div class="alert-banner" style="background:${a.color};color:${a.text_color || '#fff'}">` +
     `<span class="alert-title">⚠ OFFIZIELLE WARNUNG (${a.level})</span>` +
     `<span>${a.event} · ${a.area}</span>` +
     `<span class="alert-time">${a.from} – ${a.to}</span></div>`

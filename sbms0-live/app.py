@@ -61,10 +61,10 @@ _RAIN_CACHE = {'ts': 0, 'data': None}
 _ALERTS_CACHE = {'ts': 0, 'data': None}
 ALERTS_TTL = 30 * 60
 
-_LEVEL_MAP = {'minor': ('Gelb', '#f2cc0c'),
-              'moderate': ('Gelb', '#f2cc0c'),
-              'severe': ('Orange', '#ff9830'),
-              'extreme': ('Rot', '#f2495c')}
+_LEVEL_MAP = {'minor': ('Gelb', '#f2cc0c', '#333333'),
+              'moderate': ('Gelb', '#f2cc0c', '#333333'),
+              'severe': ('Orange', '#ff9830', '#ffffff'),
+              'extreme': ('Rot', '#f2495c', '#ffffff')}
 
 
 def _alerts_dataset():
@@ -106,11 +106,12 @@ def _alerts_dataset():
                 except ValueError:
                     pass
                 sev = str(info.get('severity') or '').lower()
-                level, color = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c'))
+                level, color, txtcol = _LEVEL_MAP.get(sev, (sev.capitalize() or '?', '#f2cc0c', '#ffffff'))
                 alerts.append({
                     'event': info.get('event') or info.get('headline') or 'Wetterwarnung',
                     'level': level,
                     'color': color,
+                    'text_color': txtcol,
                     'from': (info.get('onset') or '')[:16].replace('T', ' '),
                     'to': expires[:16].replace('T', ' '),
                     'area': ' / '.join(a for a in areas if a),

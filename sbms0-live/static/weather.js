@@ -80,9 +80,14 @@ async function update24(w) {
     const mid = Math.floor(srt.length / 2);
     return srt.length % 2 ? srt[mid] : (srt[mid - 1] + srt[mid]) / 2;
   };
-  const medianPrec = (i) => medianOf((m, j) => m.prec ? m.prec[j] : null, i, (j) => w.hourly.precip[j]);
-  const medianWind = (i) => medianOf((m, j) => m.wind ? m.wind[j] : null, i, (j) => w.hourly.wind[j]);
-  const medianGust = (i) => medianOf((m, j) => m.gust ? m.gust[j] : null, i, (j) => w.hourly.gusts[j]);
+  // Timing kommt von HARMONIE (hochauflösend) - B: "Pro Metrik das beste Modell"
+  const harm = w.hourly.harm || null;
+  const medianPrec = (i) => harm && harm.prec && harm.prec[i] != null
+    ? Number(harm.prec[i]) : medianOf((m, j) => m.prec ? m.prec[j] : null, i, (j) => w.hourly.precip[j]);
+  const medianWind = (i) => harm && harm.wind && harm.wind[i] != null
+    ? Number(harm.wind[i]) : medianOf((m, j) => m.wind ? m.wind[j] : null, i, (j) => w.hourly.wind[j]);
+  const medianGust = (i) => harm && harm.gust && harm.gust[i] != null
+    ? Number(harm.gust[i]) : medianOf((m, j) => m.gust ? m.gust[j] : null, i, (j) => w.hourly.gusts[j]);
   const hours = [];
   for (let i = i0; i <= i1; i++) {
     hours.push({
@@ -130,38 +135,45 @@ function updateTiles(w) {
   const warnGust = Number(w.warn_gust || 60);
   const warnRain = Number(w.warn_rain_mm || 20);
   const tiles = days.map((d) => {
-    // Eigene Unwetter-Kennung (KEINE offizielle Behördenwarnung!):
-    // Schwellenwerte aus pv.json (warn_gust_kmh / warn_rain_mm);
-    // Regen = MEDIAN über die Modelle (pv.json: rain_models) - Ausreißer
-    // (z.B. ICON-Spitzen) zählen nicht doppelt.
-    const rainMedian = (d.prec_median != null) ? Number(d.prec_median)
-      : (d.prec_mm != null ? Number(d.prec_mm) : null);
-    const gustMedian = (d.gust_median != null) ? Number(d.gust_median)
-      : (d.gust != null ? Number(d.gust) : null);
-    const windMedian = (d.wind_median != null) ? Number(d.wind_median)
-      : (d.wind != null ? Number(d.wind) : null);
-    const modelsStr = d.prec_models ? Object.values(d.prec_models).map((v) => v).join(' / ') : '';
-    const modelsWind = d.wind_models ? Object.values(d.wind_models).map((v) => v.gust).join(' / ') : '';
+    // A+B-Mix: Erwartung = Mittel der unabhängigen Quellen (HARMONIE + ECMWF);
+    // Anzeige: Böen primär HARMONIE (hochauflösend); Warnung: Mix >= Schwelle
+    // ODER HARMONIE >= Schwelle * 1.2 (Puffer gegen Konvektions-Übertreibung)
+    const srcs = d.srcs || [];
+    const harm = srcs.find((s) => s.name === 'harmonie') || null;
+    const ec = srcs.find((s) => s.name === 'ecmwf') || null;
+    const mixPrec = d.mix_prec != null ? Number(d.mix_prec)
+      : (d.prec_median != null ? Number(d.prec_median) : (d.prec_mm != null ? Number(d.prec_mm) : null));
+    const mixGust = d.mix_gust != null ? Number(d.mix_gust)
+      : (d.gust_median != null ? Number(d.gust_median) : (d.gust != null ? Number(d.gust) : null));
+    const harmGust = d.gust_harm != null ? Number(d.gust_harm)
+      : (harm ? Number(harm.gust) : (d.gust != null ? Number(d.gust) : null));
+    const harmWind = d.wind_harm != null ? Number(d.wind_harm)
+      : (harm ? Number(harm.wind) : (d.wind != null ? Number(d.wind) : null));
+    const modelsStr = (d.prec_models && d.prec_models) ? Object.values(d.prec_models).map((v) => v).join(' / ') : '';
     const triggers = [];
-    if (gustMedian != null && gustMedian >= warnGust) triggers.push(`Böen ${gustMedian} km/h (Median)`);
-    if (rainMedian != null && rainMedian >= warnRain) triggers.push(`Regen ${rainMedian} mm`);
+    if (mixGust != null && mixGust >= warnGust) triggers.push(`Böen ⌀ ${mixGust} km/h`);
+    if (harmGust != null && warnGust * 1.2 <= harmGust) triggers.push(`Böen HARMONIE ${harmGust} km/h`);
+    if (mixPrec != null && mixPrec >= warnRain) triggers.push(`Regen ⌀ ${mixPrec} mm`);
     const warn = triggers.length > 0;
     const warnText = warn ? `⚠ UNWETTER: ${triggers.join(' · ')}` : '';
     const dt = new Date(d.date + 'T12:00:00');
     const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
     const kwhCls = d.kwh >= 4 ? 'good' : d.kwh >= 1.5 ? 'mid' : 'poor';
+    const srcRow = srcs.length > 1
+      ? srcs.map((s) => `${s.name === 'harmonie' ? 'H' : s.name === 'ecmwf' ? 'E' : s.name[0].toUpperCase()} ${s.gust}/${s.prec}`).join(' · ')
+      : '';
     return `<div class="fc-day w-day${warn ? ' warn' : ''}">
       <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
-      ${warn ? `<div class="w-warn">${warnText}</div>` : ''}      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
+      ${warn ? `<div class="w-warn">${warnText}</div>` : ''}
+      <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
+      <div class="w-row">💨 ${harmWind ?? '–'} / ${harmGust ?? '–'} km/h (H)</div>
+      <div class="w-row dim">${srcRow || '💨 Quellen: keine Daten'}</div>
+      <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${mixPrec == null ? '–' : mixPrec.toFixed(1)} mm / ${d.prec_prob ?? '–'} %</div>
       <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max == null ? '–' : Math.round(d.uv_max)}</div>
-      <div class="w-row">☁ ${d.cloud ?? '–'} % · 🌧 ${rainMedian == null ? '–' : rainMedian.toFixed(1)} mm / ${d.prec_prob ?? '–'} %</div>
-      ${modelsStr ? `<div class="w-row dim">Modelle Regen: ${modelsStr} mm</div>` : ''}
-      ${modelsWind ? `<div class="w-row dim">Modelle Böen: ${modelsWind} km/h</div>` : ''}
-      <div class="w-row">💨 ${windMedian ?? d.wind ?? '–'} / ${gustMedian ?? d.gust ?? '–'} km/h ${dirArrow(d.dir ?? null)}</div>
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
-      ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>
+      ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
     </div>`;
   }).join('');
   $('wtiles').innerHTML = tiles;

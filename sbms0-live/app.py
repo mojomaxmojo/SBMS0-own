@@ -308,6 +308,35 @@ def _weather_dataset():
             if c is not None and int(c) >= 95:
                 thunder_by_day.setdefault(t[:10], t[11:16])
 
+        # Quellen-Gruppierung: identische Datensätze deduplizieren.
+        # metno_seamless und dmi_seamless liefern bei dieser Koordinate
+        # IDENTISCHE Werte (beide HARMONIE-AROME-Familie) -> eine Quelle
+        # "harmonie"; ECMWF ist die zweite unabhängige Quelle.
+        def _sig(m_p, m_g):
+            days = sorted(set(list(m_p) + list(m_g)))
+            return tuple((round(m_p.get(d, 0.0), 1), round(m_g.get(d, 0.0), 0)) for d in days)
+
+        groups = []
+        for mp in models_precip:
+            s = _sig(mp['mdays'], mp.get('mdays_g') or {})
+            for g in groups:
+                if g['sig'] == s:
+                    g['members'].append(mp)
+                    break
+            else:
+                groups.append({'sig': s, 'members': [mp]})
+
+        def _gname(members):
+            names = [m['model'] for m in members]
+            if any(('metno' in n or 'dmi' in n) for n in names):
+                return 'harmonie'
+            if any('ecmwf' in n for n in names):
+                return 'ecmwf'
+            return names[0]
+
+        for g in groups:
+            g['name'] = _gname(g['members'])
+
         # Tages-Zusammenfassung aus den lokalen Stunden (Tagesgrenzen lokal!)
         daily_map = {}
         for i, t in enumerate(times):
@@ -378,6 +407,33 @@ def _weather_dataset():
             d['prec_models'] = {mp['model']: round(d.get(f"mm_{mp['model']}", 0.0), 1)
                                 for mp in models_precip}
 
+            # A+B-Mix: Quellen-Werte (dedupliziert), Mix = Mittel der Quellen,
+            # Spanne = min/max. Böen-Anzeige primär HARMONIE (hochauflösend).
+            srcs = []
+            for g in groups:
+                precs = [float(m['mdays'].get(day) or 0) for m in g['members']]
+                gusts_ = [float(m['mdays_g'].get(day) or 0) for m in g['members']]
+                winds_ = [float(m['mdays_w'].get(day) or 0) for m in g['members']]
+                if not srcs or True:
+                    srcs.append({
+                        'name': g['name'],
+                        'prec': round(sum(precs) / len(precs), 1) if precs else 0.0,
+                        'gust': round(max(gusts_), 0) if gusts_ else 0.0,
+                        'wind': round(max(winds_), 0) if winds_ else 0.0,
+                    })
+            d['srcs'] = srcs
+            if srcs:
+                d['mix_prec'] = round(sum(x['prec'] for x in srcs) / len(srcs), 1)
+                d['mix_gust'] = round(sum(x['gust'] for x in srcs) / len(srcs), 0)
+                d['mix_wind'] = round(sum(x['wind'] for x in srcs) / len(srcs), 0)
+                d['span_prec'] = [min(x['prec'] for x in srcs), max(x['prec'] for x in srcs)]
+                d['span_gust'] = [min(x['gust'] for x in srcs), max(x['gust'] for x in srcs)]
+                harm = next((x for x in srcs if x['name'] == 'harmonie'), None)
+                if harm:
+                    d['prec_harm'] = harm['prec']
+                    d['gust_harm'] = harm['gust']
+                    d['wind_harm'] = harm['wind']
+
             # Wind/Böen: Median der Tages-Maxima über die Modelle
             def _median(vals):
                 srt = sorted(vals)
@@ -417,6 +473,12 @@ def _weather_dataset():
                 'wind_median': d.get('wind_median'),
                 'gust_median': d.get('gust_median'),
                 'wind_models': d.get('wind_models'),
+                'srcs': d.get('srcs'),
+                'mix_prec': d.get('mix_prec'), 'mix_gust': d.get('mix_gust'),
+                'mix_wind': d.get('mix_wind'),
+                'span_prec': d.get('span_prec'), 'span_gust': d.get('span_gust'),
+                'prec_harm': d.get('prec_harm'), 'gust_harm': d.get('gust_harm'),
+                'wind_harm': d.get('wind_harm'),
             })
 
         # Stündliche Median-Werte über die Modelle (für den 24-h-Chart) -
@@ -427,6 +489,12 @@ def _weather_dataset():
             med['precip'].append(round(_med([mp['prec'][i] for mp in models_precip]) or 0, 2))
             med['wind'].append(round(_med([mp['wind'][i] for mp in models_precip]) or 0, 1))
             med['gusts'].append(round(_med([mp['gust'][i] for mp in models_precip]) or 0, 1))
+
+        # HARMONIE-Stundenwerte (Timing für die 24-h-Kacheln)
+        harm_mp = next((mp for mp in models_precip
+                        if 'metno' in mp['model'] or 'dmi' in mp['model']), None)
+        harm_hourly = ({'prec': harm_mp['prec'], 'wind': harm_mp['wind'], 'gust': harm_mp['gust']}
+                       if harm_mp else None)
 
         data = {
             'times': times, 'watts': watts,
@@ -444,6 +512,7 @@ def _weather_dataset():
                 'wdir': h_field('wind_direction_10m'),
                 'precip_models': models_precip,
                 'med': med,
+                'harm': harm_hourly,
             },
             'daily': daily,
             'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),

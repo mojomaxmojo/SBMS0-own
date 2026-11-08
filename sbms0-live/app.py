@@ -96,6 +96,7 @@ def _alerts_dataset():
     (expires >= jetzt). 30-min-Cache; Feed-Fehler -> leer."""
     import time as _time
     import datetime as _dt
+    cfg = load_pv_config()          # alert_areas aus pv.json / pv.local.json
     now = _time.time()
     if _ALERTS_CACHE['data'] is not None and now - _ALERTS_CACHE['ts'] < ALERTS_TTL:
         return _ALERTS_CACHE['data'], None
@@ -125,7 +126,9 @@ def _alerts_dataset():
             if info is None:
                 continue
             areas = [a.get('areaDesc', '') for a in (info.get('area') or [])]
-            if not any(('faro' in a.lower() or 'algarve' in a.lower()) for a in areas):
+            # Gebietsfilter aus pv.json (alert_areas, kommasepariert)
+            want = [x.strip().lower() for x in str(cfg.get('alert_areas', 'Faro') or 'Faro').split(',') if x.strip()]
+            if want and not any(any(w in a.lower() for w in want) for a in areas):
                 continue
             expires = info.get('expires', '')
             try:

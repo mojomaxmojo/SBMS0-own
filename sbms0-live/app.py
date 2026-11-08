@@ -32,7 +32,7 @@ PV_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pv.json')
 
 _PV_FALLBACK = {
-    'ort': 'unbekannt', 'latitude': 37.169, 'longitude': -7.491,
+    'ort': 'Manta Rota, Portugal', 'latitude': 37.16381661361134, 'longitude': -7.522141757857421,
     'kwp': 2.25, 'cells_area': 9.64, 'cells_efficiency': 22,
     'temp_coeff': -0.4, 'diffuse_efficiency': 100, 'albedo': 0.2,
     'tilt': 0, 'azimuth': 180,

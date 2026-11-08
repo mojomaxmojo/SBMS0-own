@@ -43,8 +43,9 @@
     "service:              open-meteo"
   ],
 
-  "ort": "Altura, Portugal",
-  "latitude": 37.169,
+  "ort": "Manta Rota, Portugal",
+  "latitude": 37.16381661361134,
+  "longitude": -7.522141757857421,
   "longitude": -7.491,
   "kwp": 2.25,
   "cells_area": 9.64,

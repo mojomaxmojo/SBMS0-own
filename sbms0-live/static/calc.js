@@ -1,20 +1,40 @@
 /* SBMS0 BERECHNUNGEN – 1:1 wie das Grafana-Dashboard (Reihenfolge, Farben) */
 'use strict';
 
-// Today = ab lokalem Mitternacht (wie Grafana now/d) – Nanosekunden-Integer (InfluxQL-sicher)
-const _startOfDay = new Date(); _startOfDay.setHours(0, 0, 0, 0);
-const FROM_TODAY = `time > ${Math.round(_startOfDay.getTime() * 1e6)}`;
+// Today = ab lokalem Mitternacht – DYNAMISCH je Abfrage (Seite darf offen bleiben)
+const _startOfDayTs = () => {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  return Math.round(d.getTime() * 1e6);
+};
+const FROM_TODAY = () => `time > ${_startOfDayTs()}`;
 
 // WICHTIG: mean() statt sum() – der Logger schreibt nur bei frischen Serial-Daten
 // (~0.7 Hz), eine Punktsumme wuerde Pausen als "keine Energie" zaehlen.
 // kWh = mean(W) × Stunden-seit-Mitternacht / 1000 (Multiplikation in updateEnergy)
-const _HOURS_TODAY = () => (Date.now() - _startOfDay.getTime()) / 3600e3;
+const _HOURS_TODAY = () => (Date.now() - _startOfDayTs() / 1e6) / 3600e3;
+
+// Erzeugt/Verbraucht: Mittelwert über ALLE Punkte × Stunden ist korrekt.
+// Geladen/Entladen: q wird nicht genutzt (stündliche Zählvariante, s. unten) -
+// die Einträge dienen nur als Bar-Definitionen (Reihenfolge/Farbe).
 const Q_ENERGY = [
-  { alias: 'Erzeugt',   color: '#73bf69', q: `SELECT mean("PV Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}` },
-  { alias: 'Geladen',   color: '#f2cc0c', q: `SELECT mean("Battery Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND "Battery Power W" > 0 AND ${FROM_TODAY}` },
-  { alias: 'Entladen',  color: '#f2495c', q: `SELECT mean("Battery Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND "Battery Power W" < 0 AND ${FROM_TODAY}` },
-  { alias: 'Verbraucht',color: '#ff9830', q: `SELECT mean("Consumption Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY}` },
+  { alias: 'Erzeugt',   color: '#73bf69', q: () => `SELECT mean("PV Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}` },
+  { alias: 'Geladen',   color: '#f2cc0c', q: null },
+  { alias: 'Entladen',  color: '#f2495c', q: null },
+  { alias: 'Verbraucht',color: '#ff9830', q: () => `SELECT mean("Consumption Power W") FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()}` },
 ];
+
+// Geladen/Entladen: Subset-Mittel × Gesamtstunden wäre FALSCH (Anteil der
+// Lademinuten unbekannt). Richtig: je Stunde mean + count der positiven/negativen
+// Punkte -> Energie = mean × (count_pos / count_all) × 1 h, summiert in JS.
+const Q_BAT_ALL = () =>
+  `SELECT mean("Battery Power W") AS m, count("Battery Power W") AS c FROM "raw_1s"."SBMS_Metrics" ` +
+  `WHERE ("Name" = 'SBMS0a') AND ${FROM_TODAY()} GROUP BY time(1h) fill(null)`;
+const Q_BAT_POS = () =>
+  `SELECT mean("Battery Power W") AS m, count("Battery Power W") AS c FROM "raw_1s"."SBMS_Metrics" ` +
+  `WHERE ("Name" = 'SBMS0a') AND "Battery Power W" > 0 AND ${FROM_TODAY()} GROUP BY time(1h) fill(null)`;
+const Q_BAT_NEG = () =>
+  `SELECT mean("Battery Power W") AS m, count("Battery Power W") AS c FROM "raw_1s"."SBMS_Metrics" ` +
+  `WHERE ("Name" = 'SBMS0a') AND "Battery Power W" < 0 AND ${FROM_TODAY()} GROUP BY time(1h) fill(null)`;
 
 // Statische Bar-Struktur (Label + LED-Bar + Wert), Farben wie Grafana-Overrides
 const ENERGY_BARS = [];
@@ -29,26 +49,59 @@ const ENERGY_BARS = [];
       `<span class="cval">–</span>`;
     box.appendChild(row);
     const leds = buildLedBar(row.querySelector('.ledbar'), 60, 0, 7, [[0, [0x73,0xbf,0x69]], [7, [0xf2,0x49,0x5c]]]);
-    ENERGY_BARS.push({ ...t, leds, val: row.querySelector('.cval'), barEl: row.querySelector('.ledbar') });
+    ENERGY_BARS.push({ def: t, leds, val: row.querySelector('.cval'), barEl: row.querySelector('.ledbar') });
   }
 }
 
 function fmtKwh(v) { return v == null ? '–' : Number(v).toFixed(2) + ' kWh'; }
 
 async function updateEnergy() {
+  // Erzeugt/Verbraucht: Mittelwert über alle Punkte × Stunden
   for (const b of ENERGY_BARS) {
     try {
-      const row = await fetchRow(b.q);
-      // Erster Wert != 'time' (Influx liefert Zeitstempel als erste Spalte)
+      const row = await fetchRow(b.def.q());
       let v = null;
       if (row) for (const k in row) { if (k !== 'time') { v = row[k]; break; } }
-    if (v == null) { b.val.textContent = '–'; continue; }
-    let num = Number(v) * _HOURS_TODAY() / 1000;   // mean(W) × h / 1000 = kWh
-    if (b.alias === 'Entladen') num = Math.abs(num); // Werte sind negativ geloggt
-      setLedBar(b.leds, 0, 7, [[0, [0x73,0xbf,0x69]], [7, [0xf2,0x49,0x5c]]], Math.min(num, 7),
-        () => hexToRgbArr(b.color));
-      b.val.textContent = fmtKwh(num);
+      if (v == null) { b.val.textContent = '–'; continue; }
+      const kwh = Number(v) * _HOURS_TODAY() / 1000;
+      setLedBar(b.leds, 0, 7, [[0, [0x73,0xbf,0x69]], [7, [0xf2,0x49,0x5c]]], Math.min(kwh, 7),
+        () => hexToRgbArr(b.def.color));
+      b.val.textContent = fmtKwh(kwh);
     } catch (e) { b.val.textContent = 'Fehler'; }
+  }
+
+  // Geladen/Entladen: stündliche Anteile (count_pos/count_all × mean) summieren
+  try {
+    const [all, pos, neg] = await Promise.all([
+      fetchSeries(Q_BAT_ALL()), fetchSeries(Q_BAT_POS()), fetchSeries(Q_BAT_NEG()),
+    ]);
+    const mapOf = (s) => {
+      const m = new Map();
+      if (s) for (const v of s.values) m.set(v[0], { m: v[1], c: v[2] });
+      return m;
+    };
+    const allM = mapOf(all), posM = mapOf(pos), negM = mapOf(neg);
+    let charged = 0, discharged = 0;
+    for (const [ts, a] of allM) {
+      const cAll = a.c;
+      if (!cAll || cAll <= 0) continue;
+      const p = posM.get(ts), n = negM.get(ts);
+      if (p && p.m != null && p.c) charged += p.m * (p.c / cAll);          // Wh je h
+      if (n && n.m != null && n.c) discharged += Math.abs(n.m) * (n.c / cAll); // Wh je h
+    }
+    const kwhCharged = charged / 1000, kwhDischarged = discharged / 1000;
+    for (const b of ENERGY_BARS) {
+      const kwh = b.def.alias === 'Geladen' ? kwhCharged
+        : b.def.alias === 'Entladen' ? kwhDischarged : null;
+      if (kwh == null) continue;
+      setLedBar(b.leds, 0, 7, [[0, [0x73,0xbf,0x69]], [7, [0xf2,0x49,0x5c]]], Math.min(kwh, 7),
+        () => hexToRgbArr(b.def.color));
+      b.val.textContent = fmtKwh(kwh);
+    }
+  } catch (e) {
+    for (const b of ENERGY_BARS) {
+      if (b.def.alias === 'Geladen' || b.def.alias === 'Entladen') b.val.textContent = 'Fehler';
+    }
   }
 }
 function hexToRgbArr(hex) {

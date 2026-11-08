@@ -91,23 +91,6 @@ async function update24(w) {
     ? Number(harm.gust[i]) : medianOf((m, j) => m.gust ? m.gust[j] : null, i, (j) => w.hourly.gusts[j]);
   const hours = [];
   for (let i = i0; i <= i1; i++) {
-    hours.push({
-      t: times[i],
-      label: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' +
-        new Date(times[i]).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-      day: new Date(times[i]).toLocaleDateString('de-DE', { weekday: 'short' }),
-      temp: w.hourly.temp[i], wind: medianWind(i), gust: medianGust(i),
-      cloud: w.hourly.cloud[i], prec: medianPrec(i), precP: w.hourly.precip_prob[i],
-      uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
-      wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
-      metT: (w.hourly.met && w.hourly.met.temp) ? w.hourly.met.temp[i] : null,
-      metW: (w.hourly.met && w.hourly.met.wind) ? w.hourly.met.wind[i] : null,
-      metP: (w.hourly.met && w.hourly.met.prec) ? w.hourly.met.prec[i] : null,
-      wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
-    });
-  }
-  const hours = [];
-  for (let i = i0; i <= i1; i++) {
     // Konfidenz je Stunde über die 3 Modell-Werte
     const gv = pModels.map((m) => m.gust ? m.gust[i] : null).filter((v) => v != null).map(Number);
     const pv2 = pModels.map((m) => m.prec ? m.prec[i] : null).filter((v) => v != null).map(Number);

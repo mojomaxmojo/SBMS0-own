@@ -113,7 +113,7 @@ async function update24(w) {
     // Oranger Rahmen: Median-Böen der Stunde über der Schwelle (pv.json warn_gust_hourly_kmh)
     const gustCls = (h.gust != null && warnGustHourly > 0 && Number(h.gust) >= warnGustHourly) ? ' gust-warn' : '';
     return `<div class="h-hour${nowCls}${precCls}${gustCls}">
-      <div class="h-time">${wmoIcon(h.wmo)} ${h.day} ${h.label}</div>
+      <div class="h-time">${wmoIcon(h.wmo)} ${h.label}</div>
       ${h.wtxt ? `<div class="h-wtxt">${h.wtxt}</div>` : ''}
       <div class="h-temp">🌡 ${h.temp == null ? '–' : Number(h.temp).toFixed(0)}°C</div>
       <div class="h-row">💨 ${h.wind == null ? '–' : Number(h.wind).toFixed(0)} / ${h.gust == null ? '–' : Number(h.gust).toFixed(0)}</div>

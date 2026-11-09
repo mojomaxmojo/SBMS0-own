@@ -844,17 +844,17 @@ def rain():
     return jsonify(data)
 
 
-# Cache fuer Tiden (worldtides.info), 6 h - Tiden aendern sich nicht schnell
+# Cache fuer Tiden (Stormglass), 12 h - Free-Tier nur 10 Calls/Tag!
 _TIDES_CACHE = {'ts': 0, 'data': None}
-TIDES_TTL = 6 * 3600
+TIDES_TTL = 12 * 3600
 
 
 @app.route('/tides')
 def tides():
-    """Tidenhoch/-niedrig fuer die naechsten 8 Tage (worldtides.info /extremes).
-    Benoetigt kostenlosen API-Key in pv.json ('tides_api_key', Registrierung auf
-    worldtides.info). 6-h-Cache (Free-Tier limitiert Calls/Tag). Ohne Key/Fehler:
-    leer -> Frontend zeigt die Zeile nicht."""
+    """Tidenhoch/-niedrig fuer die naechsten 7 Tage (Stormglass /tide/extremes).
+    API-Key (kostenloser Free-Tier: 10 Calls/Tag) in pv.json ('tides_api_key',
+    Registrierung: dashboard.stormglass.io). 12-h-Cache -> ~2 Calls/Tag.
+    Ohne Key/Fehler: leer -> Frontend zeigt die Zeile nicht."""
     import time as _time
     import datetime as _dt
     now = _time.time()
@@ -878,24 +878,28 @@ def tides():
 
     daily = {}
     try:
+        start = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=6))
+        end = start + _dt.timedelta(days=8)
         r = requests.get(
-            'https://www.worldtides.info/api/v3',
+            'https://api.stormglass.io/v2/tide/extremes/point',
             params={
-                'extremes': '', 'key': key,
-                'lat': cfg.get('latitude'), 'lon': cfg.get('longitude'),
-                'length': 7 * 3600,      # 7 Tage Vorhersage (Sekunden; Free-Tier-Limit)
-                'step': 3600,
+                'lat': cfg.get('latitude'), 'lng': cfg.get('longitude'),
+                # ISO-Format "JJJJ-MM-TT HH:MM" (Stormglass-Konvention, UTC)
+                'start': start.strftime('%Y-%m-%d %H:%M'),
+                'end': end.strftime('%Y-%m-%d %H:%M'),
             },
+            headers={'Authorization': key},
             timeout=20,
         )
         r.raise_for_status()
         j = r.json()
-        for e in (j.get('extremes') or []):
-            raw = str(e.get('date_time', ''))
-            # Format z. B. "2026-11-10T05:44+0000" -> ISO-kompatibel machen
-            iso = raw
-            if len(iso) >= 5 and iso[-5] == '+' and ':' not in iso[-5:]:
-                iso = iso[:-5] + iso[-5:-2] + ':' + iso[-2:]
+        station = ((j.get('meta') or {}).get('station') or {}).get('name')
+        for e in (j.get('data') or []):
+            raw = str(e.get('time', ''))
+            # "2026-11-10 05:44" oder ISO mit Offset/Z
+            iso = raw.replace(' ', 'T')
+            if iso.endswith('Z'):
+                iso = iso[:-1] + '+00:00'
             try:
                 dt = _dt.datetime.fromisoformat(iso)
             except ValueError:
@@ -906,12 +910,12 @@ def tides():
             day = loc.strftime('%Y-%m-%d')
             daily.setdefault(day, []).append({
                 't': loc.strftime('%H:%M'),
-                'type': 'Hoch' if str(e.get('type', '')).lower().startswith('h') else 'Niedrig',
+                'type': 'Hoch' if str(e.get('type', '')).lower() == 'high' else 'Niedrig',
                 'h': e.get('height'),
             })
         for day in daily:
             daily[day].sort(key=lambda x: x['t'])
-        data = {'daily': daily, 'error': None}
+        data = {'daily': daily, 'error': None, 'station': station}
     except (requests.RequestException, ValueError) as e:
         data = {'daily': {}, 'error': str(e)[:120]}
     _TIDES_CACHE['ts'] = now

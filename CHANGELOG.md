@@ -4,6 +4,18 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (6) – Tiden: worldtides → Stormglass umgestellt
+
+- worldtides.info ist NICHT kostenlos (100 Test-Credits, danach 3,99 $/Jahr) –
+  durch User korrekt angemerkt. Umgestellt auf **Stormglass**
+  (`/v2/tide/extremes/point`, Auth via `Authorization`-Header, Free-Tier
+  10 Calls/Tag).
+- Cache 6 h → **12 h** (~2 Calls/Tag, sicher unter Free-Limit).
+- Fenster: ab (jetzt − 6 h) bis +8 Tage, UTC→Europe/Lisbon, je Tag sortiert;
+  `station` aus meta wird mitgeliefert.
+- pv.json: Hinweistext auf Stormglass-Registrierung angepasst
+  (Key-Feld heißt weiter `tides_api_key`).
+
 ## 2026-11-10 (5) – WETTER: Tiden Hoch/Niedrig als letzte Zeile in 7-Tage-Kacheln
 
 - Neuer Endpunkt `/tides` (app.py): Tidenhoch/-niedrig für 7 Tage via

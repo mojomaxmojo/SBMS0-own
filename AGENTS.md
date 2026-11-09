@@ -177,10 +177,12 @@ Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
   "↔ Modelle uneinig"-Zeile, "(unsicher)") wurden ENTFERNT – nicht wieder einführen.
 - Stunden-Mediane: medianOf() über ALLE Modelle (kein HARMONIE-Vorzug mehr).
 
-- **Tiden (/tides):** worldtides.info `/api/v3?extremes`, braucht **kostenlosen API-Key in pv.json
-  (`tides_api_key`)**; ohne Key leer + Zeile unsichtbar. 6-h-Cache (Free-Tier-Limit!).
+- **Tiden (/tides):** **Stormglass** `/v2/tide/extremes/point` (Auth `Authorization`-Header),
+  **kostenloser Key in pv.json (`tides_api_key`, dashboard.stormglass.io; Free-Tier 10
+  Calls/Tag)**; ohne Key leer + Zeile unsichtbar. **12-h-Cache** (~2 Calls/Tag).
   Letzte Zeile in 7-Tage-Kacheln: `🌊 H 07:32 · N 13:58 · H 19:47`. Kein Wettermodell
-  liefert Tiden – worldtides ist die einzige Quelle, nichts daran "optimieren".
+  liefert Tiden – Stormglass ist die einzige Quelle, nichts daran "optimieren".
+  worldtides.info war vorher drin, ist aber NICHT frei (3,99 $/Jahr) – nicht zurückwechseln.
 
 ### Kalibrierungs-Status
 - performance_ratio = 1,0 (Feintune; 0,34 war nötig wegen Ist-Mess-Bug, nicht Modell)

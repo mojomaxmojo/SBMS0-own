@@ -153,7 +153,9 @@ SBMS0 (USB/Serial, 921600 baud)
   (PV 2250 Wp, Flachdach 0°, 9,64 m² / 22 %, nur PV1, WR 3500 W / 90 %;
   nachmittags verschattet → shade_below_elevation=12°; Saharastaub → Waschregen ≥5 mm reinigt)
 - Standort Manta Rota, Portugal (37.16381661361134, -7.522141757857421), TZ Europe/Lisbon
-- Seiten (8090): START · LIVE · BERECHNUNGEN · HISTORIE · PROGNOSE · WETTER
+- Seiten (8090): `/` = LIVE (Standard!) · BERECHNUNGEN · HISTORIE · PROGNOSE · WETTER.
+  START-Steuerzentrale wurde 2026-11-10 entfernt (User-Wunsch) – nicht wieder anlegen.
+  Auto-Return: shared.js schaltet nach 5 min Inaktivität zurück auf /live.
 
 ### Wetter-Modell-Architektur (/weather, EIN Open-Meteo-Call / 30 min)
 - **best_match (≈ ICON):** PV-Basis (DNI/Diffuse/GHI/Temp → solXcept-Modell in `solar.py`:

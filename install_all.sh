@@ -258,7 +258,7 @@ else
   echo " FERTIG, ABER FEHLER (siehe oben) - bitte pruefen!"
 fi
 echo ""
-echo "  Live-Web : http://${IP}:${LIVEWEB_PORT}   (START-Steuerzentrale)"
+echo "  Live-Web : http://${IP}:${LIVEWEB_PORT}   (LIVE ist Standard)"
 echo "             /live  /calc  /hist"
 echo "  Logger   : journalctl -u SBMS-LiveLogger -f"
 echo "  Updates  : cd ${SBMS_DIR} && git pull && sudo python3 install_liveweb.py"

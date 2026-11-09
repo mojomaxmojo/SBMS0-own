@@ -71,8 +71,7 @@ sudo bash install_all.sh /dev/ttyUSB1
 
 | URL | Seite | Inhalt |
 |---|---|---|
-| `/` | START | Steuerzentrale mit Kacheln (Touch-Launcher) |
-| `/live` | LIVE | 1-s-Aktualisierung: SOC, Leistung, Akku, 8 Zellbalken, Cell-Delta-Gauge, Flags, Today-Verlauf |
+| `/` und `/live` | LIVE (Standard) | 1-s-Aktualisierung: SOC, Leistung, Akku, 8 Zellbalken, Cell-Delta-Gauge, Flags, Today-Verlauf |
 | `/calc` | BERECHNUNGEN | Today: Energy (kWh), Energy flow, Prognosen (Time to full/empty), Battery Levels, Cell-Verlauf (RAW 1s) |
 | `/hist` | HISTORIE | Zeitraum frei wählbar (24 h–1 a, Default 30 d): Verläufe, Energie-Statistik, Zell-Minima, Cell-Delta |
 
@@ -134,8 +133,8 @@ sudo bash install_all.sh /dev/ttyUSB1
 
 ## Bedienung am Touchscreen
 
-- **START** (Steuerzentrale): große Kacheln für LIVE / BERECHNUNGEN / HISTORIE – direkter Einstieg per Finger.
-- **Menüleiste** auf jeder Seite: `START | LIVE | BERECHNUNGEN | HISTORIE` (aktive Seite hervorgehoben).
+- **LIVE ist die Standard-Seite** (Autostart/`/` landet direkt in LIVE; die alte START-Steuerzentrale wurde entfernt).
+- **Menüleiste** auf jeder Seite: `LIVE | BERECHNUNGEN | HISTORIE | PROGNOSE | WETTER` (aktive Seite hervorgehoben).
 - **LIVE**: aktualisiert jede Sekunde – SOC-Balken (Farbe = Zustand), Leistungen PV/Batterie/Verbrauch, Akku-Spannung/Strom/Temperaturen, 8 Zellspannungen als LED-Balken, Cell-Delta-Gauge (mV) und Monitor-Flags. Unten der Tagesverlauf der Leistungen (1-Min-Mittel) mit Hover-/Touch-Werten.
 - **BERECHNUNGEN**: Energie heute (kWh), Energy-Flow-Chart, Prognosen Time to full/empty (zeigen statt „No data" einen Hinweis, wenn gerade nicht geladen/entladen wird), Battery Levels und Zell-Verlauf (RAW 1 s → Balancing-Ausschläge sichtbar).
 - **HISTORIE**: Zeitraum oben wählen (24 h / 7 d / 30 d / 90 d / 1 a oder Von–Bis-Datum), darunter Verläufe mit Min/Mean/Max-Legende, Energie-Statistik, Zell-Minima und Cell-Delta-Gauge.

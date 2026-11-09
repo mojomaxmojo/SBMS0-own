@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (17) – START-Seite entfernt, LIVE ist Standard
+
+- `/` liefert jetzt direkt `live.html` (Kiosk-Autostart-URL localhost:8090
+  landet ohne Umweg in LIVE). `start.html` gelöscht.
+- START-Link aus der Topbar-Navigation aller Seiten entfernt
+  (LIVE | BERECHNUNGEN | HISTORIE | PROGNOSE | WETTER).
+- Auto-Return (5 min → /live) bleibt; install_all.sh-/README-Texte angepasst.
+
 ## 2026-11-10 (16) – Kiosk-Auto-Return: nach 5 min zurück auf LIVE
 
 - `shared.js`: Auto-Return-Timer – 5 min ohne Berührung (Touch/Klick/Taste/

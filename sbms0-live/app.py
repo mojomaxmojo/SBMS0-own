@@ -597,7 +597,8 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 @app.route('/')
 def index():
-    return send_from_directory('templates', 'start.html')
+    """Standard-Seite ist LIVE (START-Steuerzentrale wurde entfernt)."""
+    return send_from_directory('templates', 'live.html')
 
 
 @app.route('/live')

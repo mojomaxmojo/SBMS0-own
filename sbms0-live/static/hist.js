@@ -39,14 +39,12 @@ const Q_FLOW = (ivl) =>
   `FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} GROUP BY time(${ivl}m) fill(null)`;
 
 // Stats als Funktionen – Template-Literale würden den Zeitraum beim Script-Start einfrieren!
-// WICHTIG – Energie über Zeiträume mit Wyse-aus-Nächten:
-// - sum()    zählt Pausen als "keine Energie" (zu niedrig)
-// - integral() interpoliert PAUSEN linear: beim Verbrauch (abends hoch ->
-//   morgens hoch) entsteht PHANTOM-Verbrauch für die ganze Wyse-aus-Nacht!
-// - korrekt/ehrlich: stündliche Mittel, NUR Stunden mit Daten aufsummiert
-//   (in JS). Zeitraum ohne Messung = kein Beitrag. Ergebnis = untere Grenze.
-const Q_PV_H = () => `SELECT mean("PV Power W")/1000 AS kwh FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} GROUP BY time(1h) fill(null)`;
-const Q_LOAD_H = () => `SELECT mean("Consumption Power W")/1000 AS kwh FROM "raw_1s"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} GROUP BY time(1h) fill(null)`;
+// EINHEITLICHE lueckenfeste Energie-Methode (wie BERECHNUNGEN): je Stunde
+// mean + count aus downsampled_1m -> Energie = mean × Minuten-mit-Daten/60.
+// Teilstunden (Zeitraum-Enden mitten in der Stunde, Wyse-aus-Nacht) zaehlen
+// nur anteilig – weder Phantom-Interpolation noch volle Teilstunden.
+const Q_PV_H = () => `SELECT mean("PV Power W") AS m, count("PV Power W") AS c FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} GROUP BY time(1h) fill(null)`;
+const Q_LOAD_H = () => `SELECT mean("Consumption Power W") AS m, count("Consumption Power W") AS c FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()} GROUP BY time(1h) fill(null)`;
 const Q_CELLMINS = () => `SELECT min("Cell 1") AS c1, min("Cell 2") AS c2, min("Cell 3") AS c3, min("Cell 4") AS c4, min("Cell 5") AS c5, min("Cell 6") AS c6, min("Cell 7") AS c7, min("Cell 8") AS c8 FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
 const Q_DELTA = () => `SELECT min("Cell Delta") * 1000 AS v FROM "downsampled_1m"."SBMS_Metrics" WHERE ("Name" = 'SBMS0a') AND ${TF()}`;
 
@@ -324,27 +322,30 @@ async function updateDailyInner() {
 }
 
 /* ---------- Stats ---------- */
+// kWh aus Stunden-Serie (mean m, count c): Σ mean × Minuten-mit-Daten / 60 / 1000
+function kWhOfSeries(s) {
+  if (!s) return null;
+  let wh = 0, any = false;
+  for (const v of s.values) {
+    const m = v[1], c = v[2];
+    if (m == null || !c) continue;
+    any = true;
+    wh += Number(m) * Number(c) / 60;
+  }
+  return any ? wh / 1000 : null;
+}
+
 async function updateStats() {
   // Jede Stat einzeln – ein Fehler blockiert nicht die anderen
   const val = (row) => { for (const k in row || {}) if (k !== 'time') return row[k]; return null; };
 
   try {
-    const s = await fetchSeries(Q_PV_H());
-    let kwh = null;
-    if (s) {
-      kwh = 0;
-      for (const v of s.values) if (v[1] != null) kwh += Number(v[1]);
-    }
+    const kwh = kWhOfSeries(await fetchSeries(Q_PV_H()));
     $('stat-pv').firstChild.textContent = kwh == null ? '–' : kwh.toFixed(2);
   } catch (e) { $('stat-pv').firstChild.textContent = '–'; }
 
   try {
-    const s = await fetchSeries(Q_LOAD_H());
-    let kwh = null;
-    if (s) {
-      kwh = 0;
-      for (const v of s.values) if (v[1] != null) kwh += Number(v[1]);
-    }
+    const kwh = kWhOfSeries(await fetchSeries(Q_LOAD_H()));
     $('stat-load').firstChild.textContent = kwh == null ? '–' : kwh.toFixed(2);
   } catch (e) { $('stat-load').firstChild.textContent = '–'; }
 

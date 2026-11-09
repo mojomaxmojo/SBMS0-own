@@ -129,13 +129,15 @@ SBMS0 (USB/Serial, 921600 baud)
 - „No data"-Panels bekommen freundliche Hinweistexte statt leerem Zustand.
 - Prognosen (Time to full/empty) nutzen eigene gleitende Zeitfenster
   (5m/1h/24h) – unabhängig vom Seiten-Zeitraum.
-- Energie über Zeiträume: **NIEMALS `sum()` über Punkte und NIEMALS `mean() × Gesamtstunden`** –
-  der Logger schreibt nur bei frischen Serial-Daten (~0,7 Hz) und nachts ist die Wyse aus
-  (keine Punkte). Korrekt: `integral(<Power W>)/3600/1000` (interpoliert Pausen; nachts
-  0 W → 0 W = null) ODER stündliche Mittel aufsummiert (nur Stunden mit Daten).
+- Energie über Zeiträume: **NIEMALS `sum()`, NIEMALS `integral()` über raw_1s,
+  NIEMALS `mean() × Gesamtstunden`**. `integral()` interpoliert Lücken →
+  Phantom-Energie über die Wyse-aus-Nacht (Bug: 4,27 kWh zu hoch). Korrekt
+  ist ÜBERALL (BERECHNUNGEN, HISTORIE, PROGNOSE-Real) die EINE Methode:
+  je Stunde aus `downsampled_1m` `mean(<Power W>)` + `count(...)` →
+  `Energie = Σ (mean × count/60)` Wh (count = Minuten mit Daten; Teilstunden
+  anteilig, Lücken null). Batterie Laden/Entladen: je Stunde `mean + count`
+  der pos/neg Punkte (Anteil), in JS summiert.
   „mean × Gesamtstunden" hatte ~7 Nachtstunden mit Tagesmittel bepreist (Bug: 3,98 statt 2,04 kWh).
-  Batterie Laden/Entladen: je Stunde `mean + count` der pos/neg Punkte, Energie =
-  mean × (count_pos/count_all) × 1 h, in JS summiert (Subset-mean×Stunden war Bug: 7,58 kWh).
 - Farb-Thresholds: SOC 0/10/20/30/40/80/100-Stufen; Zellen 2,8/3,0/3,2/3,65 V
   (unter 2,8 V solid rot); Delta ≤20 mV grün, ≤50 orange, >50 rot.
 

@@ -4,6 +4,30 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (10) – FIX: Energie-Berechnung einheitlich + lueckenfest (zu hohe kWh)
+
+**Ursache der zu hohen Werte (Audit):**
+1. BERECHNUNGEN Erzeugt/Verbraucht nutzte `integral()` über raw_1s – das
+   **interpoliert ALLE Lücken linear**, inkl. Wyse-aus-Nacht. War der letzte
+   Abend-Punkt ≠ 0, entsteht Phantom-Energie für die ganze Nacht (genau die
+   Bug-Klasse des alten 3,98-kWh-Bugs).
+2. PROGNOSE „Real" und HISTORIE-Stats nutzten Stundenmittel × 1 h –
+   **Teilstunden zählten als volle Stunde** (Boot mitten in der Stunde).
+3. Drei Methoden, drei leicht verschiedene Zahlen für denselben Tag.
+
+**Fix – EINE Methode überall:**
+`Energie = Σ je Stunde (mean W × count(1-Min-Punkte)/60)` aus `downsampled_1m`.
+- Minuten MIT Daten zählen, Lücken zählen NULL (kein Phantom)
+- Teilstunden zählen anteilig (count/60)
+- identisch zur bewährten Geladen/Entladen-Methode
+
+Geändert: `calc.js` (Erzeugt/Verbraucht), `app.py` `/pvcompare` (Real-Ertrag),
+`hist.js` (Energie-Stats PV/Verbrauch). Cache-Busting: calc.js v=16, hist.js v=22.
+
+**Verifikation:** Nach dem Update müssen BERECHNUNGEN „Erzeugt heute",
+PROGNOSE „Real (heute)" und HISTORIE „PV heute" (Zeitraum Von–Bis = heute)
+NAHEZU IDENTISCH sein (±0,02 kWh durch Bucket-Grenzen).
+
 ## 2026-11-10 (9) – WETTER: Leerzeile zwischen normalem Wetter und Warnungen
 
 - 7-Tage-Kacheln: `.w-space` (10 px) nach der 🌅-Zeile → optische Trennung

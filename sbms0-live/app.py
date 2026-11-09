@@ -653,24 +653,27 @@ def pvcompare():
 
     real_by_day = {}
     try:
-        # WICHTIG: mean() je Stunde statt sum() der Punkte – der Logger
-        # schreibt nur bei frischen Serial-Daten (~0.7 Hz), eine Punktsumme
-        # unterschlaege die Pausen als "keine Energie". Das Stundenmittel ist
-        # repraesentativ, mean(W) * 1 h = Wh -> /1000 kWh.
+        # EINHEITLICHE lueckenfeste Methode (wie BERECHNUNGEN/HISTORIE):
+        # je Stunde mean + count aus downsampled_1m; Energie je Stunde =
+        # mean W × (count = Minuten mit Daten) / 60. Teilstunden (Wyse-Boot
+        # mitten in der Stunde) zaehlen anteilig, keine vollen Stunden.
         r2 = requests.get(
             INFLUX_URL,
             params={'db': INFLUX_DB, 'epoch': 'ms', 'throttle': '0',
-                    'q': 'SELECT mean("PV Power W")/1000 AS kwh FROM "raw_1s"."SBMS_Metrics" '
-                         "WHERE \"Name\" = 'SBMS0a' AND time > now() - 8d GROUP BY time(1h) fill(null)"},
+                    'q': 'SELECT mean("PV Power W") AS m, count("PV Power W") AS c '
+                         'FROM "downsampled_1m"."SBMS_Metrics" '
+                         "WHERE \"Name\" = 'SBMS0a' AND time > now() - 8d "
+                         'GROUP BY time(1h) fill(null)'},
             timeout=30,
         )
         r2.raise_for_status()
         s = r2.json()['results'][0]['series'][0]
-        for ts, kwh in s['values']:
-            if kwh is None:
+        for ts, m, c in s['values']:
+            if m is None or not c:
                 continue
             day = datetime.fromtimestamp(ts / 1000, tz=LOCAL_TZ).strftime('%Y-%m-%d')
-            real_by_day[day] = round(real_by_day.get(day, 0.0) + float(kwh), 3)
+            real_by_day[day] = round(
+                real_by_day.get(day, 0.0) + float(m) * float(c) / 60 / 1000, 3)
     except (requests.RequestException, ValueError, KeyError, IndexError):
         pass  # Influx-Fehler: real bleibt leer, Seite zeigt nur Prognose
 

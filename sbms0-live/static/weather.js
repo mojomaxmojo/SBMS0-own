@@ -188,8 +188,8 @@ function updateTiles(w) {
       <div class="fc-kwh ${kwhCls}">${d.kwh.toFixed(2)} kWh</div>
       <div class="w-row">${windRow}</div>
       <div class="w-row">${gustRow}</div>
-      <div class="w-row">${precRow} / ☁ ${d.cloud ?? '–'} %</div>
-      <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max == null ? '–' : Math.round(d.uv_max)}</div>
+      <div class="w-row">${precRow}</div>
+      <div class="w-row">☀ ${d.sun_h == null ? '–' : d.sun_h + ' h'} · UV ${d.uv_max == null ? '–' : Math.round(d.uv_max)} · ☁ ${d.cloud ?? '–'} %</div>
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>

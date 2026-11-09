@@ -4,6 +4,12 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (2) – WETTER: Bewölkung in die ☀-Zeile der 7-Tage-Kacheln
+
+- 7-Tage-Kacheln: `☁ %` aus der Regen-Zeile in die Sonnenstunden-Zeile
+  verschoben → `☀ X h · UV Y · ☁ Z %`; Regen-Zeile enthält nur noch die
+  Min–Median–Max-Werte. Keine Logik-Änderung.
+
 ## 2026-11-10 – WETTER: DWD ICON zurück + Median statt Max/Konfidenz
 
 **Was geändert wurde:**

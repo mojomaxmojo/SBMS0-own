@@ -34,7 +34,7 @@ body {
   align-items: center;
   padding: 2px 4px 10px;
 }
-#topbar .nav-links { display: flex; gap: 75px; }
+#topbar .nav-links { display: flex; gap: 75px; padding-left: 100px; } /* freier Platz wo START war (100 px links) */
 #topbar a {
   color: var(--txt);
   text-decoration: none;

@@ -164,8 +164,8 @@ function updateChart24(w) {
   opts.cursor = { x: true, y: false, points: { show: false } };
   opts.series = [
     {},
-    { label: 'Wind (Median)', stroke: '#b3d4ff', width: 1.5,
-      fill: 'rgba(179,212,255,0.10)', spanGaps: true },
+    { label: 'Wind (Median)', stroke: 'rgba(179,212,255,0.45)', width: 1,
+      fill: 'rgba(179,212,255,0.08)', spanGaps: true },
     { label: 'Böen (Median)', stroke: '#ff9830', width: 2, spanGaps: true },
     { label: 'Niederschlag (Median)', stroke: '#5794f2', width: 2, scale: 'mm',
       spanGaps: true, fill: 'rgba(87,148,242,0.12)' },

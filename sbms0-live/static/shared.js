@@ -1,6 +1,23 @@
 /* SBMS0 – gemeinsam genutzte Helfer (Live-Web) */
 'use strict';
 
+/* ---- Auto-Return: nach 5 min ohne Beruehrung zurueck auf LIVE ----
+   Kiosk-Verhalten: Touchscreen zeigt irgendwo -> nach 5 min Inaktivität
+   schaltet die Steuerzentrale automatisch auf LIVE zurueck. Jede Berührung
+   (Touch/Klick/Taste/Scroll) setzt den Timer zurück. Auf /live selbst keine
+   Weiterleitung (Endlosschleife vermeiden). */
+if (location.pathname !== '/live' && location.pathname !== '/live/') {
+  let _idleTimer = null;
+  const _goLive = () => { location.href = '/live'; };
+  const _resetIdle = () => {
+    clearTimeout(_idleTimer);
+    _idleTimer = setTimeout(_goLive, 5 * 60 * 1000);
+  };
+  ['pointerdown', 'touchstart', 'click', 'keydown', 'scroll', 'wheel']
+    .forEach((ev) => window.addEventListener(ev, _resetIdle, { passive: true }));
+  _resetIdle();
+}
+
 const $ = (id) => document.getElementById(id);
 const fmt = (v, d = 2) => (v == null ? '–' : Number(v).toFixed(d));
 

@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (16) – Kiosk-Auto-Return: nach 5 min zurück auf LIVE
+
+- `shared.js`: Auto-Return-Timer – 5 min ohne Berührung (Touch/Klick/Taste/
+  Scroll) → Weiterleitung auf /live. Jede Interaktion setzt den Timer zurück.
+  Auf /live selbst keine Weiterleitung (Endlosschleife vermeiden).
+- start.html bindet shared.js jetzt ein (Auto-Return gilt damit auf ALLEN
+  Seiten inkl. START). Cache-Busting: shared.js v=5.
+
 ## 2026-11-10 (15) – Tiden: Niedrigwasser (N) heller hervorgehoben
 
 - Tiden-Zeile 7-Tage-Kacheln: `N HH:MM` jetzt hell/fett (`.tide-n`),

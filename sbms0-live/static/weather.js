@@ -180,11 +180,12 @@ function updateChart24(w) {
 }
 
 /* --- 7-Tage-Kacheln: nur heute + Zukunft, auf Breite verteilt --- */
-function updateTiles(w) {
+async function updateTiles(w, tides) {
   const today = new Date().toISOString().slice(0, 10);
   const days = w.daily.filter((d) => d.date >= today);
   const warnGust = Number(w.warn_gust || 60);
   const warnRain = Number(w.warn_rain_mm || 20);
+  const tideDaily = (tides && tides.daily) || {};
 
   // Anzeige Min–Median–Max, Median hell/fett (class "med").
   // Einzelwert-Fallback (nur Median vorhanden) ohne Spanne.
@@ -223,6 +224,12 @@ function updateTiles(w) {
 
     const dt = new Date(d.date + 'T12:00:00');
     const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    // Tiden (worldtides.info): Hoch/Niedrig-Zeiten des Tages, letzte Zeile
+    const tideEvents = tideDaily[d.date] || [];
+    const tideRow = tideEvents.length
+      ? `<div class="w-row dim">🌊 ${tideEvents.map((e) =>
+          `${e.type === 'Hoch' ? 'H' : 'N'} ${e.t}`).join(' · ')}</div>`
+      : '';
     const kwhCls = d.kwh >= 4 ? 'good' : d.kwh >= 1.5 ? 'mid' : 'poor';
     return `<div class="fc-day w-day${warn ? ' warn' : ''}">
       <div class="fc-datel">${label}${d.date === today ? ' (heute)' : ''}</div>
@@ -235,6 +242,7 @@ function updateTiles(w) {
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>
+      ${tideRow}
       ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
     </div>`;
   }).join('');
@@ -244,13 +252,15 @@ async function load() {
   const status = $('status');
   try {
     status.textContent = 'lade…';
-    const [w, alertsResp] = await Promise.all([fetchJSON('/weather'), fetchJSON('/alerts')]);
+    const [w, alertsResp, tidesResp] = await Promise.all([
+      fetchJSON('/weather'), fetchJSON('/alerts'), fetchJSON('/tides'),
+    ]);
     $('w-headline').textContent =
       `Wetter – ${w.ort || ''} · 15 Tage Daten · Update ${new Date(w.fetched_at * 1000).toLocaleTimeString('de-DE')}`;
     renderAlerts(alertsResp);
     await update24(w);
     updateChart24(w);
-    updateTiles(w);
+    updateTiles(w, tidesResp);
     status.textContent = 'Daten OK';
     status.classList.remove('err');
   } catch (e) {

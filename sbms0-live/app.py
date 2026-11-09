@@ -844,6 +844,81 @@ def rain():
     return jsonify(data)
 
 
+# Cache fuer Tiden (worldtides.info), 6 h - Tiden aendern sich nicht schnell
+_TIDES_CACHE = {'ts': 0, 'data': None}
+TIDES_TTL = 6 * 3600
+
+
+@app.route('/tides')
+def tides():
+    """Tidenhoch/-niedrig fuer die naechsten 8 Tage (worldtides.info /extremes).
+    Benoetigt kostenlosen API-Key in pv.json ('tides_api_key', Registrierung auf
+    worldtides.info). 6-h-Cache (Free-Tier limitiert Calls/Tag). Ohne Key/Fehler:
+    leer -> Frontend zeigt die Zeile nicht."""
+    import time as _time
+    import datetime as _dt
+    now = _time.time()
+    if _TIDES_CACHE['data'] is not None and now - _TIDES_CACHE['ts'] < TIDES_TTL:
+        return jsonify(_TIDES_CACHE['data'])
+
+    cfg = dict(_PV_FALLBACK)
+    cfg.update(load_json_cfg(PV_PATH, {}))
+    key = str(cfg.get('tides_api_key', '') or '').strip()
+    if not key:
+        data = {'daily': {}, 'error': 'no_key'}
+        _TIDES_CACHE['ts'] = now
+        _TIDES_CACHE['data'] = data
+        return jsonify(data)
+
+    try:
+        from zoneinfo import ZoneInfo
+        ltz = ZoneInfo(cfg.get('timezone', 'Europe/Lisbon'))
+    except Exception:
+        ltz = _dt.timezone.utc
+
+    daily = {}
+    try:
+        r = requests.get(
+            'https://www.worldtides.info/api/v3',
+            params={
+                'extremes': '', 'key': key,
+                'lat': cfg.get('latitude'), 'lon': cfg.get('longitude'),
+                'length': 7 * 3600,      # 7 Tage Vorhersage (Sekunden; Free-Tier-Limit)
+                'step': 3600,
+            },
+            timeout=20,
+        )
+        r.raise_for_status()
+        j = r.json()
+        for e in (j.get('extremes') or []):
+            raw = str(e.get('date_time', ''))
+            # Format z. B. "2026-11-10T05:44+0000" -> ISO-kompatibel machen
+            iso = raw
+            if len(iso) >= 5 and iso[-5] == '+' and ':' not in iso[-5:]:
+                iso = iso[:-5] + iso[-5:-2] + ':' + iso[-2:]
+            try:
+                dt = _dt.datetime.fromisoformat(iso)
+            except ValueError:
+                continue
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=_dt.timezone.utc)
+            loc = dt.astimezone(ltz)
+            day = loc.strftime('%Y-%m-%d')
+            daily.setdefault(day, []).append({
+                't': loc.strftime('%H:%M'),
+                'type': 'Hoch' if str(e.get('type', '')).lower().startswith('h') else 'Niedrig',
+                'h': e.get('height'),
+            })
+        for day in daily:
+            daily[day].sort(key=lambda x: x['t'])
+        data = {'daily': daily, 'error': None}
+    except (requests.RequestException, ValueError) as e:
+        data = {'daily': {}, 'error': str(e)[:120]}
+    _TIDES_CACHE['ts'] = now
+    _TIDES_CACHE['data'] = data
+    return jsonify(data)
+
+
 @app.route('/pvconfig')
 def pvconfig():
     """Editierbare PV-Prognose-Konfiguration (pv.json)."""

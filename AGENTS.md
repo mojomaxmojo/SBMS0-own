@@ -177,6 +177,11 @@ Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
   "↔ Modelle uneinig"-Zeile, "(unsicher)") wurden ENTFERNT – nicht wieder einführen.
 - Stunden-Mediane: medianOf() über ALLE Modelle (kein HARMONIE-Vorzug mehr).
 
+- **Tiden (/tides):** worldtides.info `/api/v3?extremes`, braucht **kostenlosen API-Key in pv.json
+  (`tides_api_key`)**; ohne Key leer + Zeile unsichtbar. 6-h-Cache (Free-Tier-Limit!).
+  Letzte Zeile in 7-Tage-Kacheln: `🌊 H 07:32 · N 13:58 · H 19:47`. Kein Wettermodell
+  liefert Tiden – worldtides ist die einzige Quelle, nichts daran "optimieren".
+
 ### Kalibrierungs-Status
 - performance_ratio = 1,0 (Feintune; 0,34 war nötig wegen Ist-Mess-Bug, nicht Modell)
 - diffuse_efficiency = 40 % (an solXcept-App abgeglichen — dunkle Tage korrekt)

@@ -4,6 +4,13 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (7) – Fix: /tides lieferte 12 h lang "no_key" trotz Key
+
+- Bug: Die no_key-Antwort wurde für 12 h in den Tiden-Cache geschrieben –
+  nachträglich eingetragener Key wurde dadurch ignoriert. Jetzt werden
+  **no_key- UND Fehler-Antworten nicht mehr gecacht** (nur erfolgreiche Daten).
+- Restart genügt; pv.json wird ohnehin bei jedem Call frisch gelesen.
+
 ## 2026-11-10 (6) – Tiden: worldtides → Stormglass umgestellt
 
 - worldtides.info ist NICHT kostenlos (100 Test-Credits, danach 3,99 $/Jahr) –

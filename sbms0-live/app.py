@@ -865,10 +865,8 @@ def tides():
     cfg.update(load_json_cfg(PV_PATH, {}))
     key = str(cfg.get('tides_api_key', '') or '').strip()
     if not key:
-        data = {'daily': {}, 'error': 'no_key'}
-        _TIDES_CACHE['ts'] = now
-        _TIDES_CACHE['data'] = data
-        return jsonify(data)
+        # NICHT cachen: Key kann ja gleich in pv.json eingetragen werden
+        return jsonify({'daily': {}, 'error': 'no_key'})
 
     try:
         from zoneinfo import ZoneInfo
@@ -917,7 +915,8 @@ def tides():
             daily[day].sort(key=lambda x: x['t'])
         data = {'daily': daily, 'error': None, 'station': station}
     except (requests.RequestException, ValueError) as e:
-        data = {'daily': {}, 'error': str(e)[:120]}
+        # Fehler NICHT cachen (sonst bleibt z. B. ein Key-Problem 12 h haengen)
+        return jsonify({'daily': {}, 'error': str(e)[:120]})
     _TIDES_CACHE['ts'] = now
     _TIDES_CACHE['data'] = data
     return jsonify(data)

@@ -4,6 +4,20 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (13) – FIX: Schatten-Modell morgens (Tagesgang-Beweis 09.11.)
+
+- Befund: `shade_below_elevation=12°` blockte die flache Sonne ZEITSYMMETRISCH
+  (morgens UND abends). Real produzierte die Anlage am 09.11. aber ab ~06:53
+  (100–200 W), Prognose zeite bis 08:21 Null → Modell-Bug, nicht Kalibrierung.
+- Fix `solar.py` `_shade_factor()` – 3 Modi:
+  1. nur `shade_below_elevation` → zeitsymmetrisch (wie bisher)
+  2. nur `shade_from` → rein zeitbasiert (wie bisher)
+  3. **BEIDE gesetzt → Schatten nur ab Uhrzeit UND unter Sonnenhöhe**
+     (Nachmittagsschatten Baum; morgens unangetastet)
+- `pv.json`: `shade_from: "12:00"` gesetzt (Nachmittagsschatten-Modus 3).
+- 09.11.-Prognose wurde generell zu niedrig gerechnet (Sturm-Wolken kamen
+  später als von den Modellen angenommen) → Wetter-Timing, NICHT kalibrieren.
+
 ## 2026-11-10 (12) – Mobil: SOC-Balken bleibt sichtbar
 
 - Mobile Nur-Werte-Modus: Ausnahme für `#soc-panel .ledbar` – der SOC-

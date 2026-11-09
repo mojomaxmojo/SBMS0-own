@@ -104,10 +104,42 @@ class Plant:
         self.timezone_name = cfg.get('timezone', 'Europe/Lisbon')
 
     def _shade_factor(self, elevation_deg, local_hhmm):
-        """Verschattung: bevorzugt über Sonnenhöhe (jahreszeitenunabhängig,
-        passend für mobile Anlagen); alternativ über feste Uhrzeit."""
+        """Verschattung, drei Modi:
+        1. NUR shade_below_elevation  -> zeitsymmetrisch (morgens UND abends)
+        2. NUR shade_from (HH:MM)     -> rein zeitbasiert ab dieser Uhrzeit
+        3. BEIDE gesetzt              -> Verschattung nur ab Uhrzeit UND
+           Sonnenhoehe unter der Grenze. Fuer Nachmittagsschatten (z. B. Baum),
+           der morgens nicht existiert: Sonne morgens unangetastet.
+        (Modus 3 seit 2026-11-10 – vorher blockte shade_below auch morgens,
+         obwohl die Anlage real produzierte: Tagesgang-Beweis 09.11.)"""
         if self.shade_percent <= 0:
             return 1.0
+        blocked = 1.0 - self.shade_percent / 100.0
+
+        if self.shade_below > 0 and self.shade_from:
+            # Kombiniert: Uhrzeit-Fenster + Sonnenhoehe
+            try:
+                from_h, from_m = self.shade_from.split(':')
+                limit = int(from_h) * 60 + int(from_m)
+                now_h, now_m = local_hhmm.split(':')
+                if (int(now_h) * 60 + int(now_m)) < limit:
+                    return 1.0            # vor dem Fenster: keine Verschattung
+            except (ValueError, AttributeError):
+                return 1.0
+            return blocked if elevation_deg < self.shade_below else 1.0
+
+        if self.shade_below > 0:
+            return blocked if elevation_deg < self.shade_below else 1.0
+        if self.shade_from:
+            try:
+                from_h, from_m = self.shade_from.split(':')
+                limit = int(from_h) * 60 + int(from_m)
+                now_h, now_m = local_hhmm.split(':')
+                if (int(now_h) * 60 + int(now_m)) >= limit:
+                    return blocked
+            except (ValueError, AttributeError):
+                return 1.0
+        return 1.0
         blocked = 1.0 - self.shade_percent / 100.0
         if self.shade_below > 0:
             return blocked if elevation_deg < self.shade_below else 1.0

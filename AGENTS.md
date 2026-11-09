@@ -187,11 +187,17 @@ Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
   worldtides.info war vorher drin, ist aber NICHT frei (3,99 $/Jahr) – nicht zurückwechseln.
 
 ### Kalibrierungs-Status
-- performance_ratio = 1,0 (Feintune; 0,34 war nötig wegen Ist-Mess-Bug, nicht Modell)
-- diffuse_efficiency = 40 % (an solXcept-App abgeglichen — dunkle Tage korrekt)
+- Kalibrierungs-Status: performance_ratio = 1,0; diffuse_efficiency = 40 %.
+- **Schatten-Logik (seit 2026-11-10, Modus 3):** `shade_below_elevation` + `shade_from`
+  gesetzt → Verschattung nur ab Uhrzeit UND unter Sonnenhöhe (Nachmittagsschatten).
+  Vorher zeitsymmetrisch → morgens fälschlich 0 W Prognose (Tagesgang 09.11. bewies
+  reale Morgenproduktion).
+- Energie-Bilanz-Check bestätigt Messkette (Differenz ~5 % = Ladeverluste);
+  Sommer-Peak ~1.700 W = Physik-Deckel flach+heiß, KEIN Messfehler.
 - Tage mit SOC ~90 %+ zeigen "Real < Prognose" = CORRECT (SBMS0-Curtailment, nicht kalibrieren!)
-- Ausstehend: nach dem Sturm 11.11. (Böen 100–110, 40–100 mm — alle Modelle einig; IPMA gelb
-  Vento+Precipitação 12–18h) Ist-vs-Prognose final prüfen; 💧-Reset durch Waschregen testen
+- Ausstehend: Ist-vs-Prognose nach Sturm 11.11. final prüfen; 💧-Reset durch
+  Waschregen testen. Befund 09.11.: Prognose zu NIEDRIG (Sturmwolken-Timing der
+  Modelle) – Wetter-Timing schwankt täglich, NICHT per PR kalibrieren!
 
 ### Eherne Bugs (nicht neu erfinden!)
 - weather.js: nach großen Umbauten auf doppelte const-Deklarationen prüfen (2× "const hours"

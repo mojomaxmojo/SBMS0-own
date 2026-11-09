@@ -157,22 +157,25 @@ SBMS0 (USB/Serial, 921600 baud)
 - **best_match (≈ ICON):** PV-Basis (DNI/Diffuse/GHI/Temp → solXcept-Modell in `solar.py`:
   Sonnenstand NOAA, DNI-Projektion, Diffuse×40 %, Ross-Zelltemp + −0,4 %/K-Derating,
   WR-Limit, Schatten über Sonnenhöhe) + Temp/Wolken/UV/Sichtweite/Feuchte/WMO-Codes
-- **rain_models** (pv.json) = `metno_seamless,ecmwf_ifs025,meteofrance_arpege_europe`
-  → 3 unabhängige Quellen für Regen/Wind/Böen. **metno==dmi identisch (Zwilling, DMI entfernt),
-  Dedupe-Logik fasst sie als "harmonie" zusammen.** dwd_icon raus (101-mm-Übertreibung beim
-  Regen; als best_match nur für PV/Wetter-Basis drin)
+- **rain_models** (pv.json) = `metno_seamless,dwd_icon,ecmwf_ifs025,meteofrance_arpege_europe`
+  → 4 unabhängige Quellen für Regen/Wind/Böen. **metno==dmi identisch (Zwilling, DMI entfernt),
+  Dedupe-Logik fasst sie als "harmonie" zusammen.** dwd_icon wurde 2026-11-10 WIEDER
+  aufgenommen (war vorher raus wg. 101-mm-Regen-Übertreibung; User-Wunsch).
 - **Multi-Modell-API-Antwort:** EIN dict mit keys `precipitation_<model>` etc. (KEINE Blöcke)
 - **MET Norway api.met.no:** nur Vergleichszeile in Stunden-Kacheln (Locationforecast compact,
   User-Agent-Pflicht, max 4 Dezimalstellen, m/s → ×3,6). Kein PV-Nutzen (keine Strahlung)
 - **IPMA/MeteoAlarm:** offizielle Warnungen via /alerts → ⚠-Banner auf WETTER (alert_areas in pv.json)
 - **ECMWF-Ensemble (ENS):** bewusst NICHT integriert — der 3-Modell-Spread ist der Ersatz
 
-### Konfidenz-Logik (WETTER)
-Spread = (max−min)/Mix je Tag und Stunde:
-- <15 % (high): Mix anzeigen · 15–40 % (mid): Spanne „X–Y" · >40 % (low): „X–Y (unsicher)"
-- ⚠-Warnung löst auf **MAX-Werten** aus (Sicherheit zuerst), mit „(unsicher)"-Zusatz
-- Schwellen: spread_mid_pct=15 / spread_warn_pct=40 (pv.json)
-- Hinweis „↔ Modelle uneinig" NUR bei roter ⚠-Warnung
+### Median-Logik (WETTER, seit 2026-11-10 – ersetzt die alte Konfidenz-Logik)
+Anzeige je Tag und Stunde: **Min – Median – Max** (Median hell/fett, `class="med"`,
+Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
+- **Unwetter-Warnungen lösen AUSSCHLIESSLICH am Median aus** (Tages-Kacheln:
+  `warn_gust_kmh`/`warn_rain_mm`; Stunden-Kacheln: oranger Rahmen ab `warn_gust_hourly_kmh`).
+  Warntext nennt den Wert als "(Median)". KEIN Max-/Mindest-ein-Modell-Ansatz mehr.
+- Alte Konfidenz-/Spread-Felder (`conf_*`, `spread_*`, `mix_*`, `span_*`, `*_median`,
+  "↔ Modelle uneinig"-Zeile, "(unsicher)") wurden ENTFERNT – nicht wieder einführen.
+- Stunden-Mediane: medianOf() über ALLE Modelle (kein HARMONIE-Vorzug mehr).
 
 ### Kalibrierungs-Status
 - performance_ratio = 1,0 (Feintune; 0,34 war nötig wegen Ist-Mess-Bug, nicht Modell)

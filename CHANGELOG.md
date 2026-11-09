@@ -4,6 +4,28 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 – WETTER: DWD ICON zurück + Median statt Max/Konfidenz
+
+**Was geändert wurde:**
+
+1. **DWD ICON wieder in `rain_models`** (pv.json): jetzt 4 Quellen
+   `metno_seamless,dwd_icon,ecmwf_ifs025,meteofrance_arpege_europe`
+   (war 2026-11-06 wegen 101-mm-Regen-Übertreibung entfernt, User-Wunsch).
+2. **Anzeige Min–Median–Max** auf 7-Tage- UND Stunden-Kacheln (Regen mm,
+   Wind/Böen km/h). Median hell/fett (`span class="med"`), Min/Max abgedunkelt.
+   "↔ Modelle uneinig"-Zeile und "(unsicher)"-Markierungen ENTFERNT – die
+   Spanne interpretiert der Nutzer selbst (Konfidenz-Logik abgeschafft).
+3. **Unwetter-Warnungen NUR am Median**: Tages-⚠ ab `warn_gust_kmh`/`warn_rain_mm`
+   vs. Median (vorher MAX!), oranger Stunden-Rahmen ab `warn_gust_hourly_kmh`
+   vs. Median-Böen (vorher MAX). Warntext mit "(Median)"-Zusatz.
+4. Stunden-Mediane: `medianOf()` über alle 4 Modelle – HARMONIE-Vorzug entfernt.
+5. Backend (`app.py`): statt `mix_*`/`conf_*`/`spread_*`/`*_median` jetzt
+   `prec_min/med/max`, `gust_min/med/max`, `wind_min/med/max` je Tag (Dedupe-
+   Gruppen `srcs`). `pv.json`: `spread_mid_pct`/`spread_warn_pct` entfernt.
+6. Cache-Busting: style.css/weather.js → v=25 (alle Templates).
+
+**Update auf der Kiste:** `git pull && sudo python3 install_liveweb.py && sudo systemctl restart SBMS-LiveWeb`
+
 ## 2026-11-06 – Alte Installer/Legacy-Logger entfernt (nur DietPi/Wyse)
 
 - Gelöscht: `install_dietpi.sh` (alter Installer, von `install_all.sh` abgelöst),

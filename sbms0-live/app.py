@@ -398,17 +398,8 @@ def _weather_dataset():
         daily = []
         for day, d in sorted(daily_map.items()):
             s = sun_map.get(day, {})
-            # Multi-Modell-Regen: Einzelwerte + Median (VOR dem append setzen!)
-            mmvals = [round(d.get(f"mm_{mp['model']}", 0.0), 1) for mp in models_precip]
-            if mmvals:
-                srt = sorted(mmvals)
-                mid = len(srt) // 2
-                d['prec_median'] = round(srt[mid] if len(srt) % 2 else (srt[mid - 1] + srt[mid]) / 2, 1)
-            d['prec_models'] = {mp['model']: round(d.get(f"mm_{mp['model']}", 0.0), 1)
-                                for mp in models_precip}
 
-            # A+B-Mix: Quellen-Werte (dedupliziert), Mix = Mittel der Quellen,
-            # Spanne = min/max. Böen-Anzeige primär HARMONIE (hochauflösend).
+            # Quellen-Werte (dedupliziert, je Modell-Gruppe).
             srcs = []
             for g in groups:
                 precs = [float(m['mdays'].get(day) or 0) for m in g['members']]
@@ -423,44 +414,33 @@ def _weather_dataset():
                     })
             d['srcs'] = srcs
             if srcs:
-                d['mix_prec'] = round(sum(x['prec'] for x in srcs) / len(srcs), 1)
-                d['mix_gust'] = round(sum(x['gust'] for x in srcs) / len(srcs), 0)
-                d['mix_wind'] = round(sum(x['wind'] for x in srcs) / len(srcs), 0)
-                d['span_prec'] = [min(x['prec'] for x in srcs), max(x['prec'] for x in srcs)]
-                d['span_gust'] = [min(x['gust'] for x in srcs), max(x['gust'] for x in srcs)]
-                # Konfidenz: Spread relativ zum Mix
-                #   <15 %  = hoch (Modelle einig -> Mix anzeigen)
-                #   15-40% = mittel (Spanne anzeigen)
-                #   >40 %  = niedrig ("unsicher", fuer Sicherheit den MAX-Wert nutzen)
-                for met, mix in (('gust', d['mix_gust']), ('prec', d['mix_prec'])):
-                    vals = [x[met] for x in srcs]
-                    lo, hi = min(vals), max(vals)
-                    d[f'{met}_min'] = round(lo, 1)
-                    d[f'{met}_max'] = round(hi, 1)
-                    pct = round((hi - lo) / mix * 100) if mix > 0 else 0
-                    d[f'spread_{met}_pct'] = pct
-                    d[f'conf_{met}'] = 'high' if pct < 15 else ('mid' if pct < 40 else 'low')
-                harm = next((x for x in srcs if x['name'] == 'harmonie'), None)
-                if harm:
-                    d['prec_harm'] = harm['prec']
-                    d['gust_harm'] = harm['gust']
-                    d['wind_harm'] = harm['wind']
+                # Min / Median / Max je Metrik über alle Modell-Quellen.
+                # Median wird FETT hervorgehoben (weather.js) und ist die
+                # EINZIGE Grundlage für Unwetter-Warnungen (⚠ nur Median).
+                def _md3(vals):
+                    srt = sorted(vals)
+                    m = len(srt) // 2
+                    med = srt[m] if len(srt) % 2 else (srt[m - 1] + srt[m]) / 2
+                    return round(min(srt), 1), round(med, 1), round(max(srt), 1)
 
-            # Wind/Böen: Median der Tages-Maxima über die Modelle
-            def _median(vals):
-                srt = sorted(vals)
-                m = len(srt) // 2
-                return srt[m] if len(srt) % 2 else (srt[m - 1] + srt[m]) / 2
-            gvals_d = [mp['mdays_g'].get(day) for mp in models_precip if mp['mdays_g'].get(day) is not None]
-            wvals_d = [mp['mdays_w'].get(day) for mp in models_precip if mp['mdays_w'].get(day) is not None]
-            if gvals_d:
-                d['gust_median'] = round(_median(gvals_d), 0)
-            if wvals_d:
-                d['wind_median'] = round(_median(wvals_d), 0)
-            d['wind_models'] = {mp['model']: {
-                'wind': round(mp['mdays_w'].get(day, 0.0), 0),
+                d['prec_min'], d['prec_med'], d['prec_max'] = _md3(
+                    [x['prec'] for x in srcs])
+                d['gust_min'], d['gust_med'], d['gust_max'] = _md3(
+                    [x['gust'] for x in srcs])
+                d['wind_min'], d['wind_med'], d['wind_max'] = _md3(
+                    [x['wind'] for x in srcs])
+
+            harm = next((x for x in srcs if x['name'] == 'harmonie'), None)
+            if harm:
+                d['prec_harm'] = harm['prec']
+                d['gust_harm'] = harm['gust']
+                d['wind_harm'] = harm['wind']
+
+            d['prec_models'] = {mp['model']: {
+                'prec': round(mp['mdays'].get(day, 0.0), 1),
                 'gust': round(mp['mdays_g'].get(day, 0.0), 0),
-            } for mp in models_precip if mp['mdays_w']}
+                'wind': round(mp['mdays_w'].get(day, 0.0), 0),
+            } for mp in models_precip if mp['mdays']}
 
             daily.append({
                 'date': day,
@@ -480,24 +460,15 @@ def _weather_dataset():
                 'sunset': (s.get('sunset') or '')[11:16],
                 'dir': s.get('dir'),
                 'thunder_first': thunder_by_day.get(day),
-                'prec_median': d.get('prec_median'),
                 'prec_models': d.get('prec_models'),
-                'wind_median': d.get('wind_median'),
-                'gust_median': d.get('gust_median'),
                 'wind_models': d.get('wind_models'),
                 'srcs': d.get('srcs'),
-                'mix_prec': d.get('mix_prec'), 'mix_gust': d.get('mix_gust'),
-                'mix_wind': d.get('mix_wind'),
-                'span_prec': d.get('span_prec'), 'span_gust': d.get('span_gust'),
-                'prec_harm': d.get('prec_harm'), 'gust_harm': d.get('gust_harm'),
-                'wind_harm': d.get('wind_harm'),
-                'gust_min': d.get('gust_min'), 'gust_max': d.get('gust_max'),
-                'prec_min': d.get('prec_min'), 'prec_max': d.get('prec_max'),
-                'conf_gust': d.get('conf_gust'), 'conf_prec': d.get('conf_prec'),
-                'spread_gust_pct': d.get('spread_gust_pct'),
-                'spread_prec_pct': d.get('spread_prec_pct'),
-                'spread_mid': float(cfg.get('spread_mid_pct', 15) or 15),
-                'spread_warn': float(cfg.get('spread_warn_pct', 40) or 40),
+                'prec_min': d.get('prec_min'), 'prec_med': d.get('prec_med'),
+                'prec_max': d.get('prec_max'),
+                'gust_min': d.get('gust_min'), 'gust_med': d.get('gust_med'),
+                'gust_max': d.get('gust_max'),
+                'wind_min': d.get('wind_min'), 'wind_med': d.get('wind_med'),
+                'wind_max': d.get('wind_max'),
             })
 
         # Stündliche Median-Werte über die Modelle (für den 24-h-Chart) -

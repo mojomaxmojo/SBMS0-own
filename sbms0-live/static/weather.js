@@ -137,6 +137,48 @@ async function update24(w) {
   $('whours').innerHTML = tiles;
 }
 
+/* --- 24-h-Chart: Median-Kurven Wind / Böen (km/h, links) + Niederschlag (mm, rechts) --- */
+let wetterPlot = null;
+
+function updateChart24(w) {
+  const now = Date.now();
+  const times = w.times.map((t) => new Date(t.replace(' ', 'T')).getTime());
+  let i0 = 0;
+  for (let i = 0; i < times.length; i++) {
+    if (times[i] <= now && now < times[i] + 3600e3) { i0 = i; break; }
+    if (times[i] > now) { i0 = i; break; }
+  }
+  const i1 = Math.min(times.length - 1, i0 + 23);
+  const med = w.hourly.med || { precip: [], wind: [], gusts: [] };
+  const data = [[], [], [], []];
+  for (let i = i0; i <= i1; i++) {
+    data[0].push(times[i]);
+    data[1].push(med.wind[i] == null ? null : Number(med.wind[i]));
+    data[2].push(med.gusts[i] == null ? null : Number(med.gusts[i]));
+    data[3].push(med.precip[i] == null ? null : Number(med.precip[i]));
+  }
+  const opts = uplotBaseOpts(240,
+    (u, vals) => vals.map((v) => Math.round(v)));   // links: km/h
+  opts.width = $('wchart').clientWidth;
+  opts.legend = { show: true, live: true };
+  opts.cursor = { x: true, y: false, points: { show: false } };
+  opts.series = [
+    {},
+    { label: 'Wind (Median)', stroke: '#b3d4ff', width: 1.5,
+      fill: 'rgba(179,212,255,0.10)', spanGaps: true },
+    { label: 'Böen (Median)', stroke: '#ff9830', width: 2, spanGaps: true },
+    { label: 'Niederschlag (Median)', stroke: '#5794f2', width: 2, scale: 'mm',
+      spanGaps: true, fill: 'rgba(87,148,242,0.12)' },
+  ];
+  opts.scales = { x: { time: true },
+    mm: { auto: true, range: (u, dmin, dmax) => [0, Math.max(1, Math.ceil((dmax || 1) * 1.2))] } };
+  opts.axes.push({ scale: 'mm', stroke: '#5794f2', grid: { show: false },
+    ticks: { stroke: '#2c3235' }, side: 1, size: 55,
+    values: (u, vals) => vals.map((v) => Number(v).toFixed(0) + ' mm') });
+  if (!wetterPlot) wetterPlot = new uPlot(opts, data, $('wchart'));
+  else { wetterPlot.scales = opts.scales; wetterPlot.setData(data); }
+}
+
 /* --- 7-Tage-Kacheln: nur heute + Zukunft, auf Breite verteilt --- */
 function updateTiles(w) {
   const today = new Date().toISOString().slice(0, 10);
@@ -207,6 +249,7 @@ async function load() {
       `Wetter – ${w.ort || ''} · 15 Tage Daten · Update ${new Date(w.fetched_at * 1000).toLocaleTimeString('de-DE')}`;
     renderAlerts(alertsResp);
     await update24(w);
+    updateChart24(w);
     updateTiles(w);
     status.textContent = 'Daten OK';
     status.classList.remove('err');
@@ -233,4 +276,7 @@ function renderAlerts(resp) {
 
 load();
 setInterval(load, 30 * 60000);
-window.addEventListener('resize', () => load());
+window.addEventListener('resize', () => {
+  wetterPlot && wetterPlot.setSize({ width: $('wchart').clientWidth, height: 240 });
+  load();
+});

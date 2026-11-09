@@ -4,6 +4,15 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (4) – WETTER: 24-h-Chart (Median Wind/Böen/Niederschlag)
+
+- Neues Panel auf WETTER zwischen Stunden-Kacheln und 7-Tage-Kacheln:
+  uPlot-Liniendiagramm mit den **Median-Kurven über alle 4 Modelle** –
+  Wind (hellblau) + Böen (orange) links in km/h, Niederschlag (blau) rechts in mm.
+- Zeitfenster identisch zu den Stunden-Kacheln: 24 h ab aktueller Stunde.
+- Datenquelle: bestehende `hourly.med`-Mediane aus `/weather` (kein neuer API-Call).
+- wetter.html: uPlot-Script eingebunden; weather.js Cache-Busting v=26.
+
 ## 2026-11-10 (3) – WETTER: Median-Farbe gelb
 
 - `.med` (hervorgehobener Median in Min–Median–Max, Tages- UND Stunden-Kacheln)

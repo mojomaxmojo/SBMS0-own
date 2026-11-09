@@ -4,6 +4,18 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (11) – Mobil-Support (Pixel 6a): Nur-Werte-Modus
+
+- `@media (max-width: 520px)` in style.css: auf dem Handy zeigen LIVE & Co.
+  **nur die wichtigsten Werte** – SOC-Zahl, Leistungen PV/Akku/Verbrauch,
+  Akku V/A, Delta-Gauge (kompakt, 120 px), Flags/Fehler-Banner.
+- AUSGEBLENDET auf Mobil: alle LED-Bars (Werte bleiben als Text),
+  Zellbalken-Panel, Tages-Chart, 24-h-Gauge wird verkleinert statt weg.
+- Sonstige Seiten: einspaltig, kompakte Topbar, WETTER/PROGNOSE-Kacheln
+  stapeln, HISTORIE-Zellminima 2-spaltig.
+- Kiosk (1920 px) unverändert – Media-Query greift erst unter 520 px.
+  Cache-Busting: style.css v=27 (alle Templates).
+
 ## 2026-11-10 (10) – FIX: Energie-Berechnung einheitlich + lueckenfest (zu hohe kWh)
 
 **Ursache der zu hohen Werte (Audit):**

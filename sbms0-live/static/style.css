@@ -427,3 +427,55 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 
 /* Leerzeile nach den normalen Wetter-Zeilen (7-Tage-Kacheln, vor Unwetter/Gewitter/Tiden) */
 .w-space { height: 10px; }
+
+/* ============================================================
+   MOBILE (Pixel 6a, 412 CSS px; Breakpoint 520 px)
+   Nur die wichtigsten Werte: SOC, Leistungen, Akku, Delta,
+   Flags. LED-Bars, Zellbalken, Tages-Chart -> aus.
+   Der 1920er-Kiosk sieht davon NICHTS (Media-Query greift nicht).
+   ============================================================ */
+@media (max-width: 520px) {
+  body { font-size: 13px; padding: 6px; }
+
+  /* Topbar kompakt, umbrechend */
+  #topbar { flex-wrap: wrap; row-gap: 6px; padding-bottom: 6px; }
+  #topbar .nav-links { gap: 6px; flex-wrap: wrap; }
+  #topbar a { padding: 6px 9px; font-size: 12px; }
+  #topbar .right { gap: 8px; font-size: 12px; }
+
+  /* Alles einspaltig */
+  .grid { gap: 6px; }
+  .panel, .panel.stat-card { grid-column: span 24 !important; padding: 8px 10px; }
+  body.calc #energy-panel, body.calc #flow-panel,
+  body.calc #ttf-panel, body.calc #tte-panel { grid-column: span 24 !important; }
+
+  /* LIVE: Werte gross genug, Struktur schlank */
+  .soc-line { height: auto; flex-wrap: wrap; gap: 8px; }
+  .soc-value { font-size: 3rem; }
+  .stats-row { gap: 10px; }
+  .stat { min-width: 88px; }
+  .stat-value { font-size: 2.2rem; }
+  .stat-value.small { font-size: 1.15rem; line-height: 1.7rem; }
+
+  /* Nur-Werte-Modus: LED-Bars weg (Werte bleiben als Text) */
+  .ledbar { display: none; }
+  #cells-panel, #chart-panel { display: none; }   /* Zellbalken + Tages-Chart */
+
+  /* Delta-Gauge kompakt behalten (wichtigster BMS-Wert) */
+  #gauge svg { width: 120px; height: 120px; }
+  #gauge svg text { font-size: 26px; }
+  #gauge svg .gunit { font-size: 12px; }
+
+  .alarm-banner { font-size: 1rem; padding: 10px 12px; }
+  #err-24h { font-size: 0.95rem; }
+
+  /* HISTORIE */
+  .mins-grid { grid-template-columns: repeat(2, 1fr); }
+  .legend-table { font-size: 11px; }
+
+  /* WETTER / PROGNOSE: Kacheln stapeln */
+  #wtiles { flex-wrap: wrap; }
+  #wtiles .fc-day { flex: 1 1 100%; }
+  .fc-days { flex-wrap: wrap; }
+  .fc-days .fc-day { flex: 1 1 140px; }
+}

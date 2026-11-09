@@ -143,19 +143,6 @@ class Plant:
             except (ValueError, AttributeError):
                 return 1.0
         return 1.0
-        blocked = 1.0 - self.shade_percent / 100.0
-        if self.shade_below > 0:
-            return blocked if elevation_deg < self.shade_below else 1.0
-        if self.shade_from:
-            try:
-                from_h, from_m = self.shade_from.split(':')
-                limit = int(from_h) * 60 + int(from_m)
-                now_h, now_m = local_hhmm.split(':')
-                if (int(now_h) * 60 + int(now_m)) >= limit:
-                    return blocked
-            except (ValueError, AttributeError):
-                return 1.0
-        return 1.0
 
     def get_power(self, dni, dif, ghi, ambient_temp, ts_utc, local_hhmm):
         """AC-Leistung (W) für die Stunde, bewertet zur Stundenmitte."""

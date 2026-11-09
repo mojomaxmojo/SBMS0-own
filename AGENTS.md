@@ -129,8 +129,13 @@ SBMS0 (USB/Serial, 921600 baud)
 - „No data"-Panels bekommen freundliche Hinweistexte statt leerem Zustand.
 - Prognosen (Time to full/empty) nutzen eigene gleitende Zeitfenster
   (5m/1h/24h) – unabhängig vom Seiten-Zeitraum.
-- Energie = `sum(<Power W>) / 3600 / 1000` kWh; Batterie **280 Ah** ist in den
-  Time-to-Queries hart hinterlegt (6 Stellen im Repo).
+- Energie über Zeiträume: **NIEMALS `sum()` über Punkte und NIEMALS `mean() × Gesamtstunden`** –
+  der Logger schreibt nur bei frischen Serial-Daten (~0,7 Hz) und nachts ist die Wyse aus
+  (keine Punkte). Korrekt: `integral(<Power W>)/3600/1000` (interpoliert Pausen; nachts
+  0 W → 0 W = null) ODER stündliche Mittel aufsummiert (nur Stunden mit Daten).
+  „mean × Gesamtstunden" hatte ~7 Nachtstunden mit Tagesmittel bepreist (Bug: 3,98 statt 2,04 kWh).
+  Batterie Laden/Entladen: je Stunde `mean + count` der pos/neg Punkte, Energie =
+  mean × (count_pos/count_all) × 1 h, in JS summiert (Subset-mean×Stunden war Bug: 7,58 kWh).
 - Farb-Thresholds: SOC 0/10/20/30/40/80/100-Stufen; Zellen 2,8/3,0/3,2/3,65 V
   (unter 2,8 V solid rot); Delta ≤20 mV grün, ≤50 orange, >50 rot.
 
@@ -138,4 +143,53 @@ SBMS0 (USB/Serial, 921600 baud)
 
 - Nächtlicher Reboot-Cron für Kiosk (RAM-Optimierung, optional).
 - `raw_1s`-Retention 365d → 60d (optional, Verläufe laufen über `downsampled_1m`).
+
+## Session-Kontext (Stand 2026-11-09, Handover für Folge-Sessions)
+
+### System
+- Batterie 280 Ah / 24 V (8s LiFePO4, ~6,7 kWh) — **Wohnmobil-Anlage, mobil!**
+  (PV 2250 Wp, Flachdach 0°, 9,64 m² / 22 %, nur PV1, WR 3500 W / 90 %;
+  nachmittags verschattet → shade_below_elevation=12°; Saharastaub → Waschregen ≥5 mm reinigt)
+- Standort Manta Rota, Portugal (37.16381661361134, -7.522141757857421), TZ Europe/Lisbon
+- Seiten (8090): START · LIVE · BERECHNUNGEN · HISTORIE · PROGNOSE · WETTER
+
+### Wetter-Modell-Architektur (/weather, EIN Open-Meteo-Call / 30 min)
+- **best_match (≈ ICON):** PV-Basis (DNI/Diffuse/GHI/Temp → solXcept-Modell in `solar.py`:
+  Sonnenstand NOAA, DNI-Projektion, Diffuse×40 %, Ross-Zelltemp + −0,4 %/K-Derating,
+  WR-Limit, Schatten über Sonnenhöhe) + Temp/Wolken/UV/Sichtweite/Feuchte/WMO-Codes
+- **rain_models** (pv.json) = `metno_seamless,ecmwf_ifs025,meteofrance_arpege_europe`
+  → 3 unabhängige Quellen für Regen/Wind/Böen. **metno==dmi identisch (Zwilling, DMI entfernt),
+  Dedupe-Logik fasst sie als "harmonie" zusammen.** dwd_icon raus (101-mm-Übertreibung beim
+  Regen; als best_match nur für PV/Wetter-Basis drin)
+- **Multi-Modell-API-Antwort:** EIN dict mit keys `precipitation_<model>` etc. (KEINE Blöcke)
+- **MET Norway api.met.no:** nur Vergleichszeile in Stunden-Kacheln (Locationforecast compact,
+  User-Agent-Pflicht, max 4 Dezimalstellen, m/s → ×3,6). Kein PV-Nutzen (keine Strahlung)
+- **IPMA/MeteoAlarm:** offizielle Warnungen via /alerts → ⚠-Banner auf WETTER (alert_areas in pv.json)
+- **ECMWF-Ensemble (ENS):** bewusst NICHT integriert — der 3-Modell-Spread ist der Ersatz
+
+### Konfidenz-Logik (WETTER)
+Spread = (max−min)/Mix je Tag und Stunde:
+- <15 % (high): Mix anzeigen · 15–40 % (mid): Spanne „X–Y" · >40 % (low): „X–Y (unsicher)"
+- ⚠-Warnung löst auf **MAX-Werten** aus (Sicherheit zuerst), mit „(unsicher)"-Zusatz
+- Schwellen: spread_mid_pct=15 / spread_warn_pct=40 (pv.json)
+- Hinweis „↔ Modelle uneinig" NUR bei roter ⚠-Warnung
+
+### Kalibrierungs-Status
+- performance_ratio = 1,0 (Feintune; 0,34 war nötig wegen Ist-Mess-Bug, nicht Modell)
+- diffuse_efficiency = 40 % (an solXcept-App abgeglichen — dunkle Tage korrekt)
+- Tage mit SOC ~90 %+ zeigen "Real < Prognose" = CORRECT (SBMS0-Curtailment, nicht kalibrieren!)
+- Ausstehend: nach dem Sturm 11.11. (Böen 100–110, 40–100 mm — alle Modelle einig; IPMA gelb
+  Vento+Precipitação 12–18h) Ist-vs-Prognose final prüfen; 💧-Reset durch Waschregen testen
+
+### Eherne Bugs (nicht neu erfinden!)
+- weather.js: nach großen Umbauten auf doppelte const-Deklarationen prüfen (2× "const hours"
+  hatte die Seite eingefroren); Brace-Balance checken
+- uPlot: cursor.points.show NUR mit legend.show:true (sonst Crash „t is undefined");
+  valToPos mit korrektem Scale-Namen (nicht 'y'!)
+- style.css Cache-Busting auf ALLEN Seiten identisch (v=22+)
+- Wyse-Kiosk: fonts-noto-color-emoji nötig (Emoji sonst unsichtbar); `./script` geht nicht,
+  immer `sudo bash script`
+- app.py-500: journalctl -u SBMS-LiveWeb zeigt Traceback mit Zeile — beim Multi-Modell-Block
+  auf 'mdays'-Feld in models_precip achten (war schon mal verloren)
+- Energie-Rechnung: siehe Konventionen oben (integral/stündliche Anteile!)
 - Logger: Terminal-Render-Throttle (bewusst bei 1 s belassen, User-Wahl).

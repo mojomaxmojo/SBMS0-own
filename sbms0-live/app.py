@@ -523,12 +523,14 @@ def _weather_dataset():
                 mmap[key3] = {
                     'temp': inst.get('air_temperature'),
                     'wind': round(ws * 3.6, 1) if ws is not None else None,
+                    'dir': inst.get('wind_from_direction'),   # Grad (MET Norway)
                     'prec': det.get('precipitation_amount'),
                     'sym': (n1.get('summary') or {}).get('symbol_code'),
                 }
             met_arrs = {
                 'temp': [ (mmap.get(t) or {}).get('temp') for t in times ],
                 'wind': [ (mmap.get(t) or {}).get('wind') for t in times ],
+                'dir':  [ (mmap.get(t) or {}).get('dir') for t in times ],
                 'prec': [ (mmap.get(t) or {}).get('prec') for t in times ],
                 'sym':  [ (mmap.get(t) or {}).get('sym') for t in times ],
             }

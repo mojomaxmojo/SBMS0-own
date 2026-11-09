@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (19) – MET-Vergleichszeile entfernt
+
+- Die gedimmte MET-Norway-Zeile in den Stunden-Kacheln ist weg (User-Wunsch).
+  MET-Daten werden serverseitig weiter geladen (app.py unverändert) – nur
+  die Anzeigezeile ist raus. Der MET-Speed-Neuaufbau (Windrichtung) landete
+  nie im Frontend und wurde mit entfernt.
+- Cache-Busting: weather.js v=34.
+
 ## 2026-11-10 (18) – Stunden-Kacheln: MET-Zeile mit Windrichtung statt Speed
 
 - MET-Vergleichszeile: `💨 30` (m/s→km/h Speed) entfernt, dafür **🧭 Windrichtung**

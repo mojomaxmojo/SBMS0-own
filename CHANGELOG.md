@@ -4,6 +4,17 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (14) – Schatten-Modell: Direkt vs. Diffus getrennt (Baum)
+
+- Baum verschattet die Sonnenscheibe VOLL, aber Diffusstrahlung kommt durchs
+  Laubdach. Vorher wurde der Schatten-Faktor auf die GESAMT-Einstrahlung
+  angewendet (Diffus fälschlich mit 0).
+- Neu: `shade_percent` (100) wirkt nur auf die Direktstrahlung;
+  neuer Parameter `shade_diffuse_pct` (pv.json, Default 50) = Anteil Diffus
+  unter Schatten. Rechnerisch: diffuse_eff ×= 1−(1−shade)×(1−frac).
+- Bodenreflexion bleibt unverschattet (bei tilt=0 ohnehin 0).
+- pv.json: `"shade_diffuse_pct": 50`.
+
 ## 2026-11-10 (13) – FIX: Schatten-Modell morgens (Tagesgang-Beweis 09.11.)
 
 - Befund: `shade_below_elevation=12°` blockte die flache Sonne ZEITSYMMETRISCH

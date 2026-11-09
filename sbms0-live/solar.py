@@ -99,8 +99,11 @@ class Plant:
         self.inv_eff = float(cfg.get('inverter_efficiency', 90) or 90) / 100.0
         self.fine_tune = float(cfg.get('performance_ratio', 1.0) or 1.0)
         self.shade_below = float(cfg.get('shade_below_elevation', 0) or 0)  # Sonnenhöhe in °
-        self.shade_from = str(cfg.get('shade_from', '') or '')      # alternative Uhrzeit "16:00"
+        self.shade_from = str(cfg.get('shade_from', '') or '')      # Start-Uhrzeit "12:00"
         self.shade_percent = float(cfg.get('shade_percent', 100) or 100)
+        # Anteil Diffusstrahlung, der DURCH die Verschattung kommt (Baum:
+        # Sonnenscheibe voll blockt, Diffus kommt teils durchs Laubdach)
+        self.shade_diffuse_frac = float(cfg.get('shade_diffuse_pct', 50) or 50) / 100.0
         self.timezone_name = cfg.get('timezone', 'Europe/Lisbon')
 
     def _shade_factor(self, elevation_deg, local_hhmm):
@@ -175,8 +178,17 @@ class Plant:
             efficiency = max(0.0, dot)
         shade = self._shade_factor(elevation, local_hhmm)
 
+        # Verschattung (Baum): Direktstrahlung voll betroffen (shade_percent),
+        # Diffusstrahlung kommt anteilig durch (shade_diffuse_pct).
+        diffuse_eff = self.diffuse_eff
+        if shade < 1.0:
+            # Übertrag-Anteil: bei shade=0 (voll blockt) bleibt shade_diffuse_frac übrig
+            diffuse_eff *= 1.0 - (1.0 - shade) * (1.0 - self.shade_diffuse_frac)
+            # 1 - (1-shade)*(1-frac): shade=1 -> 1.0 (frei); shade=0 -> frac
+        direct = dni * efficiency * shade
+
         reflected = ghi * (0.5 - 0.5 * math.cos(math.radians(self.tilt))) * self.albedo
-        total = dni * efficiency + dif * self.diffuse_eff + reflected
+        total = direct + dif * diffuse_eff + reflected
 
         t_cell = ambient_temp + 0.0342 * total
         derate = 1.0 + (t_cell - 25.0) * self.temp_coeff
@@ -189,7 +201,8 @@ class Plant:
         ac = dc * self.inv_eff
         if self.inv_limit > 0:
             ac = min(ac, self.inv_limit)
-        ac *= shade * self.fine_tune
+        # Schatten bereits auf Direkt/Diffus angewendet -> hier nur Feintune
+        ac *= self.fine_tune
         return max(0.0, ac)
 
 

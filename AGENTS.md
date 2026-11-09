@@ -188,10 +188,11 @@ Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
 
 ### Kalibrierungs-Status
 - Kalibrierungs-Status: performance_ratio = 1,0; diffuse_efficiency = 40 %.
-- **Schatten-Logik (seit 2026-11-10, Modus 3):** `shade_below_elevation` + `shade_from`
-  gesetzt → Verschattung nur ab Uhrzeit UND unter Sonnenhöhe (Nachmittagsschatten).
-  Vorher zeitsymmetrisch → morgens fälschlich 0 W Prognose (Tagesgang 09.11. bewies
-  reale Morgenproduktion).
+- **Schatten-Logik (seit 2026-11-10, Modus 3 + Direkt/Diffus-Split):** `shade_below_elevation`
+  + `shade_from` gesetzt → Schatten nur ab Uhrzeit UND unter Sonnenhöhe.
+  `shade_percent` (100) wirkt NUR auf Direktstrahlung; Diffus kommt anteilig durch
+  (`shade_diffuse_pct` in pv.json, Default 50 – Baum/Laub). Schatten-Faktor wird
+  NICHT mehr global auf die Gesamt-Einstrahlung multipliziert!
 - Energie-Bilanz-Check bestätigt Messkette (Differenz ~5 % = Ladeverluste);
   Sommer-Peak ~1.700 W = Physik-Deckel flach+heiß, KEIN Messfehler.
 - Tage mit SOC ~90 %+ zeigen "Real < Prognose" = CORRECT (SBMS0-Curtailment, nicht kalibrieren!)

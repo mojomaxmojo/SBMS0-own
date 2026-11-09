@@ -4,6 +4,12 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (8) – WETTER: Zeilenreihenfolge 7-Tage-Kacheln
+
+- Neue Reihenfolge: normale Wetter-Zeilen (Datum, kWh, Wind, Böen, Regen,
+  ☀/UV/☁, Temp, Sicht/Feuchte, 🌅) → dann ⚠ UNWETTER → ⛈ Gewitter →
+  🌊 Tiden als LETZTE Zeile.
+
 ## 2026-11-10 (7) – Fix: /tides lieferte 12 h lang "no_key" trotz Key
 
 - Bug: Die no_key-Antwort wurde für 12 h in den Tiden-Cache geschrieben –

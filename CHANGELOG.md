@@ -4,6 +4,11 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (15) – Tiden: Niedrigwasser (N) heller hervorgehoben
+
+- Tiden-Zeile 7-Tage-Kacheln: `N HH:MM` jetzt hell/fett (`.tide-n`),
+  `H HH:MM` bleibt gedimmt. Cache-Busting: style.css v=29, weather.js v=30.
+
 ## 2026-11-10 (14) – Schatten-Modell: Direkt vs. Diffus getrennt (Baum)
 
 - Baum verschattet die Sonnenscheibe VOLL, aber Diffusstrahlung kommt durchs

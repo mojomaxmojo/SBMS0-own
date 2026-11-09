@@ -428,6 +428,9 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
 /* Leerzeile nach den normalen Wetter-Zeilen (7-Tage-Kacheln, vor Unwetter/Gewitter/Tiden) */
 .w-space { height: 10px; }
 
+/* Tiden: Niedrigwasser (N) heller hervorgehoben als Hochwasser (H) */
+.tide-n { color: var(--bright); font-weight: 600; }
+
 /* ============================================================
    MOBILE (Pixel 6a, 412 CSS px; Breakpoint 520 px)
    Nur die wichtigsten Werte: SOC, Leistungen, Akku, Delta,

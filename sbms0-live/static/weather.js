@@ -224,11 +224,14 @@ async function updateTiles(w, tides) {
 
     const dt = new Date(d.date + 'T12:00:00');
     const label = dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
-    // Tiden (worldtides.info): Hoch/Niedrig-Zeiten des Tages, letzte Zeile
+    // Tiden (worldtides.info): Hoch/Niedrig-Zeiten des Tages, letzte Zeile.
+    // Niedrigwasser (N) heller hervorgehoben als Hochwasser (H).
     const tideEvents = tideDaily[d.date] || [];
     const tideRow = tideEvents.length
       ? `<div class="w-row dim">🌊 ${tideEvents.map((e) =>
-          `${e.type === 'Hoch' ? 'H' : 'N'} ${e.t}`).join(' · ')}</div>`
+          e.type === 'Hoch'
+            ? `H ${e.t}`
+            : `<span class="tide-n">N ${e.t}</span>`).join(' · ')}</div>`
       : '';
     const kwhCls = d.kwh >= 4 ? 'good' : d.kwh >= 1.5 ? 'mid' : 'poor';
     return `<div class="fc-day w-day${warn ? ' warn' : ''}">

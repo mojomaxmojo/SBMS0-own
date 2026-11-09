@@ -113,9 +113,6 @@ async function update24(w) {
       uv: w.hourly.uv[i], rh: w.hourly.rh[i], vis: w.hourly.vis_km[i],
       wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
       wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
-      metT: (w.hourly.met && w.hourly.met.temp) ? w.hourly.met.temp[i] : null,
-      metP: (w.hourly.met && w.hourly.met.prec) ? w.hourly.met.prec[i] : null,
-      metDir: (w.hourly.met && w.hourly.met.dir) ? w.hourly.met.dir[i] : null,
       wdir: w.hourly.wdir ? w.hourly.wdir[i] : null,
     });
   }
@@ -138,6 +135,7 @@ async function update24(w) {
       <div class="h-row">🌧 ${h.prec == null ? '–' : Number(h.prec).toFixed(1)} mm / ${h.precP == null ? '–' : Number(h.precP).toFixed(0)} %</div>
       <div class="h-row">☀ UV ${h.uv == null ? '–' : Number(h.uv).toFixed(0)}</div>
       <div class="h-row">💧 ${h.rh == null ? '–' : Number(h.rh).toFixed(0)} % · 👁 ${h.vis == null ? '–' : Number(h.vis).toFixed(0)} km</div>
+      <div class="h-row">🧭 ${dir16(h.wdir) || '–'}</div>
     </div>`;
   }).join('');
   $('whours').innerHTML = tiles;

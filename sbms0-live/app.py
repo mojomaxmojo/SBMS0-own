@@ -486,56 +486,9 @@ def _weather_dataset():
         harm_hourly = ({'prec': harm_mp['prec'], 'wind': harm_mp['wind'], 'gust': harm_mp['gust']}
                        if harm_mp else None)
 
-        # MET Norway (api.met.no) als VERGLEICHsquelle nur für WETTER:
-        # vorgeglättetes Fusionsprodukt (HARMONIE+ECMWF) — keine PV-Daten!
-        # api.met.no verlangt einen User-Agent und max 4 Dezimalstellen.
-        met_arrs = None
-        try:
-            import datetime as _dt3
-            try:
-                from zoneinfo import ZoneInfo as _ZI
-                ltz = _ZI(cfg.get('timezone', 'Europe/Lisbon'))
-            except Exception:
-                ltz = _dt3.timezone.utc
-            r3 = requests.get(
-                'https://api.met.no/weatherapi/locationforecast/2.0/compact',
-                params={'lat': round(float(cfg.get('latitude', 0)), 4),
-                        'lon': round(float(cfg.get('longitude', 0)), 4)},
-                headers={'User-Agent': 'SBMS0-LiveWeb/1.0 (mojomaxmojo/SBMS0-own)',
-                         'Accept': 'application/json'},
-                timeout=15,
-            )
-            r3.raise_for_status()
-            j3 = r3.json()
-            mmap = {}
-            for e3 in j3.get('properties', {}).get('timeseries', []):
-                t3 = e3.get('time', '')           # "2026-11-08T18:00:00Z"
-                if len(t3) < 16:
-                    continue
-                dt3 = _dt3.datetime.strptime(t3[:16], '%Y-%m-%dT%H:%M').replace(
-                    tzinfo=_dt3.timezone.utc).astimezone(ltz)
-                key3 = dt3.strftime('%Y-%m-%dT%H:%M')
-                d3 = e3.get('data') or {}
-                inst = (d3.get('instant') or {}).get('details') or {}
-                n1 = d3.get('next_1_hours') or {}
-                det = n1.get('details') or {}
-                ws = inst.get('wind_speed')       # m/s -> km/h
-                mmap[key3] = {
-                    'temp': inst.get('air_temperature'),
-                    'wind': round(ws * 3.6, 1) if ws is not None else None,
-                    'dir': inst.get('wind_from_direction'),   # Grad (MET Norway)
-                    'prec': det.get('precipitation_amount'),
-                    'sym': (n1.get('summary') or {}).get('symbol_code'),
-                }
-            met_arrs = {
-                'temp': [ (mmap.get(t) or {}).get('temp') for t in times ],
-                'wind': [ (mmap.get(t) or {}).get('wind') for t in times ],
-                'dir':  [ (mmap.get(t) or {}).get('dir') for t in times ],
-                'prec': [ (mmap.get(t) or {}).get('prec') for t in times ],
-                'sym':  [ (mmap.get(t) or {}).get('sym') for t in times ],
-            }
-        except (requests.RequestException, ValueError, KeyError) as e:
-            print(f'[WETTER] MET Norway nicht erreichbar: {str(e)[:120]}', flush=True)
+        # MET Norway (api.met.no) wurde 2026-11-10 ENTFERNT – wurde nur als
+        # Vergleichszeile in den Stunden-Kacheln angezeigt (Zeile gelöscht).
+        # Falls wieder benötigt: Locationforecast 2.0 compact, User-Agent-Pflicht.
 
         data = {
             'times': times, 'watts': watts,
@@ -554,7 +507,6 @@ def _weather_dataset():
                 'precip_models': models_precip,
                 'med': med,
                 'harm': harm_hourly,
-                'met': met_arrs,
             },
             'daily': daily,
             'ort': cfg.get('ort'), 'kwp': float(cfg.get('kwp', 0) or 0),

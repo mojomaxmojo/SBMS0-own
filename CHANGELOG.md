@@ -4,6 +4,15 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (20) – MET Norway komplett entfernt; Windrichtung als letzte Kachel-Zeile
+
+- app.py: MET-Norway-Abruf (api.met.no) ENTFERNT – wurde nur für die
+  gelöschte Vergleichszeile gebraucht, nichts anderes nutzt die Daten.
+  Ein API-Call weniger pro 30-min-Refresh.
+- Stunden-Kacheln: neue letzte Zeile `🧭 SSW` (Windrichtung, 16-Sektoren,
+  aus best_match `wind_direction_10m`).
+- Cache-Busting: weather.js v=35.
+
 ## 2026-11-10 (19) – MET-Vergleichszeile entfernt
 
 - Die gedimmte MET-Norway-Zeile in den Stunden-Kacheln ist weg (User-Wunsch).

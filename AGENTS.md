@@ -166,8 +166,9 @@ SBMS0 (USB/Serial, 921600 baud)
   Dedupe-Logik fasst sie als "harmonie" zusammen.** dwd_icon wurde 2026-11-10 WIEDER
   aufgenommen (war vorher raus wg. 101-mm-Regen-Übertreibung; User-Wunsch).
 - **Multi-Modell-API-Antwort:** EIN dict mit keys `precipitation_<model>` etc. (KEINE Blöcke)
-- **MET Norway api.met.no:** nur Vergleichszeile in Stunden-Kacheln (Locationforecast compact,
-  User-Agent-Pflicht, max 4 Dezimalstellen, m/s → ×3,6). Kein PV-Nutzen (keine Strahlung)
+- **MET Norway api.met.no:** 2026-11-10 ENTFERNT (war nur Vergleichszeile in
+  Stunden-Kacheln; Zeile gelöscht). Falls wieder benötigt: Locationforecast
+  compact, User-Agent-Pflicht, m/s → ×3,6. Kein PV-Nutzen (keine Strahlung)
 - **IPMA/MeteoAlarm:** offizielle Warnungen via /alerts → ⚠-Banner auf WETTER (alert_areas in pv.json)
 - **ECMWF-Ensemble (ENS):** bewusst NICHT integriert — der 3-Modell-Spread ist der Ersatz
 

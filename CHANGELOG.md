@@ -4,6 +4,12 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (9) – WETTER: Leerzeile zwischen normalem Wetter und Warnungen
+
+- 7-Tage-Kacheln: `.w-space` (10 px) nach der 🌅-Zeile → optische Trennung
+  vor ⚠ UNWETTER / ⛈ Gewitter / 🌊 Tiden. Cache-Busting: style.css v=26,
+  weather.js v=29.
+
 ## 2026-11-10 (8) – WETTER: Zeilenreihenfolge 7-Tage-Kacheln
 
 - Neue Reihenfolge: normale Wetter-Zeilen (Datum, kWh, Wind, Böen, Regen,

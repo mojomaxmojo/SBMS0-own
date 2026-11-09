@@ -241,6 +241,7 @@ async function updateTiles(w, tides) {
       <div class="w-row">🌡 ${d.tmin ?? '–'}–${d.tmax ?? '–'} °C</div>
       <div class="w-row">👁 ${d.vis ?? '–'} km · 💧 ${d.rh ?? '–'} %</div>
       <div class="w-row dim">🌅 ${d.sunrise} – ${d.sunset}</div>
+      <div class="w-space"></div>
       ${warn ? `<div class="w-warn">${warnText}</div>` : ''}
       ${d.thunder_first ? `<div class="w-row warn2">⛈ Gewitter ab ca. ${d.thunder_first}</div>` : ''}
       ${tideRow}

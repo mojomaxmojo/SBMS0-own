@@ -457,8 +457,10 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
   .stat-value { font-size: 2.2rem; }
   .stat-value.small { font-size: 1.15rem; line-height: 1.7rem; }
 
-  /* Nur-Werte-Modus: LED-Bars weg (Werte bleiben als Text) */
+  /* Nur-Werte-Modus: LED-Bars weg (Werte bleiben als Text) –
+     AUSNAHME: SOC-Balken bleibt sichtbar */
   .ledbar { display: none; }
+  #soc-panel .ledbar { display: flex; height: 28px; }
   #cells-panel, #chart-panel { display: none; }   /* Zellbalken + Tages-Chart */
 
   /* Delta-Gauge kompakt behalten (wichtigster BMS-Wert) */

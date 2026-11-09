@@ -4,6 +4,12 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (12) – Mobil: SOC-Balken bleibt sichtbar
+
+- Mobile Nur-Werte-Modus: Ausnahme für `#soc-panel .ledbar` – der SOC-
+  LED-Balken bleibt (28 px kompakt), alle anderen LED-Bars bleiben aus.
+  Cache-Busting: style.css v=28.
+
 ## 2026-11-10 (11) – Mobil-Support (Pixel 6a): Nur-Werte-Modus
 
 - `@media (max-width: 520px)` in style.css: auf dem Handy zeigen LIVE & Co.

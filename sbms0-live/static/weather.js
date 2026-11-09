@@ -61,6 +61,14 @@ function wmoText(c) {
   return 'Wetter ' + c;
 }
 
+/* Windrichtung (Grad) -> 16-Sektor-Kompass (N, NNO, NO, ONO, O, ...) */
+function dir16(deg) {
+  if (deg == null) return '';
+  const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO',
+                'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return dirs[Math.round(Number(deg) / 22.5) % 16];
+}
+
 /* --- 24 h: stündliche Kacheln ab aktueller Stunde (kein Diagramm) --- */
 async function update24(w) {
   const now = Date.now();
@@ -106,8 +114,8 @@ async function update24(w) {
       wmo: w.hourly.wmo ? w.hourly.wmo[i] : null,
       wtxt: wmoText(w.hourly.wmo ? w.hourly.wmo[i] : null),
       metT: (w.hourly.met && w.hourly.met.temp) ? w.hourly.met.temp[i] : null,
-      metW: (w.hourly.met && w.hourly.met.wind) ? w.hourly.met.wind[i] : null,
       metP: (w.hourly.met && w.hourly.met.prec) ? w.hourly.met.prec[i] : null,
+      wdir: w.hourly.wdir ? w.hourly.wdir[i] : null,
     });
   }
   const warnGustHourly = Number(w.warn_gust_hourly || 60);
@@ -129,8 +137,8 @@ async function update24(w) {
       <div class="h-row">🌧 ${h.prec == null ? '–' : Number(h.prec).toFixed(1)} mm / ${h.precP == null ? '–' : Number(h.precP).toFixed(0)} %</div>
       <div class="h-row">☀ UV ${h.uv == null ? '–' : Number(h.uv).toFixed(0)}</div>
       <div class="h-row">💧 ${h.rh == null ? '–' : Number(h.rh).toFixed(0)} % · 👁 ${h.vis == null ? '–' : Number(h.vis).toFixed(0)} km</div>
-      ${(h.metT != null || h.metW != null || h.metP != null)
-        ? `<div class="h-row dim">MET 🌡 ${h.metT == null ? '–' : Number(h.metT).toFixed(0)}° · 💨 ${h.metW == null ? '–' : Number(h.metW).toFixed(0)} · 🌧 ${h.metP == null ? '–' : Number(h.metP).toFixed(1)}</div>`
+      ${(h.metT != null || h.metP != null)
+        ? `<div class="h-row dim">MET 🌡 ${h.metT == null ? '–' : Number(h.metT).toFixed(0)}° · 🧭 ${dir16(h.wdir) || '–'} · 🌧 ${h.metP == null ? '–' : Number(h.metP).toFixed(1)}</div>`
         : ''}
     </div>`;
   }).join('');

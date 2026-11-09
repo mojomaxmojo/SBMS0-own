@@ -4,6 +4,13 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (18) – Stunden-Kacheln: MET-Zeile mit Windrichtung statt Speed
+
+- MET-Vergleichszeile: `💨 30` (m/s→km/h Speed) entfernt, dafür **🧭 Windrichtung**
+  (16-Sektor-Kompass: N, NNO, NO … SSW, SW …) aus best_match `wind_direction_10m`.
+  Zeile jetzt: `MET 🌡 20° · 🧭 SSW · 🌧 0,3`.
+- Cache-Busting: weather.js v=32.
+
 ## 2026-11-10 (17) – START-Seite entfernt, LIVE ist Standard
 
 - `/` liefert jetzt direkt `live.html` (Kiosk-Autostart-URL localhost:8090

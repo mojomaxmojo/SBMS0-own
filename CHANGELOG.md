@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (21) – TEST-Wechsel: dwd_icon → dwd_icon_eu (pv.json)
+
+- `rain_models` jetzt mit `dwd_icon_eu` (6,5 km, in ICON global eingebettet)
+  statt `dwd_icon` (13 km global). 3–4 Tage beobachten (Tagesgang-Vergleich).
+- Backup der bisherigen Zeile als Text im `_hinweis`-Block von pv.json
+  (JSON hat keine Kommentare – `#`-Zeilen würden die ganze Datei invalidieren!).
+- Kein Code-Change, nur Konfiguration.
+
 ## 2026-11-10 (20) – MET Norway komplett entfernt; Windrichtung als letzte Kachel-Zeile
 
 - app.py: MET-Norway-Abruf (api.met.no) ENTFERNT – wurde nur für die

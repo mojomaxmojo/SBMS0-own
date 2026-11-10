@@ -161,10 +161,13 @@ SBMS0 (USB/Serial, 921600 baud)
 - **best_match (≈ ICON):** PV-Basis (DNI/Diffuse/GHI/Temp → solXcept-Modell in `solar.py`:
   Sonnenstand NOAA, DNI-Projektion, Diffuse×40 %, Ross-Zelltemp + −0,4 %/K-Derating,
   WR-Limit, Schatten über Sonnenhöhe) + Temp/Wolken/UV/Sichtweite/Feuchte/WMO-Codes
-- **rain_models** (pv.json) = `metno_seamless,dwd_icon,ecmwf_ifs025,meteofrance_arpege_europe`
-  → 4 unabhängige Quellen für Regen/Wind/Böen. **metno==dmi identisch (Zwilling, DMI entfernt),
-  Dedupe-Logik fasst sie als "harmonie" zusammen.** dwd_icon wurde 2026-11-10 WIEDER
-  aufgenommen (war vorher raus wg. 101-mm-Regen-Übertreibung; User-Wunsch).
+- **rain_models** (pv.json) = `metno_seamless,dwd_icon_eu,ecmwf_ifs025,meteofrance_arpege_europe`
+  → 4 Quellen. **TEST seit 2026-11-10: dwd_icon_eu (6,5 km) statt dwd_icon (global 13 km)** –
+  ICON-EU ist in ICON global eingebettet (kein unabhängiges Modell, aber schärfer).
+  Backup der Alt-Zeile steht als Text im `_hinweis`-Block von pv.json.
+  Beobachtungsplan: Tagesgang 11.11. (Sturmtag) + 3–4 Tage danach; dann behalten
+  oder zurück auf dwd_icon (nur pv.json, kein Restart nötig). NICHT zusätzlich
+  beides aufnehmen (Zwilling → Median-Verzerrung, Lektion dmi_seamless).
 - **Multi-Modell-API-Antwort:** EIN dict mit keys `precipitation_<model>` etc. (KEINE Blöcke)
 - **MET Norway api.met.no:** 2026-11-10 ENTFERNT (war nur Vergleichszeile in
   Stunden-Kacheln; Zeile gelöscht). Falls wieder benötigt: Locationforecast

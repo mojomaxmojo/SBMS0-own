@@ -4,6 +4,13 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (23) – HISTORIE: Standard-Zeitraum 30 d → 7 d
+
+- User-Wunsch: HISTORIE öffnet standardmäßig mit 7 Tagen statt 30 Tagen.
+- `hist.js`: `range.hours` 720 → 168, Init `setRangeHours(168)`.
+- `hist.html`: Button „7 d" ist jetzt `active` statt „30 d"; Cache-Busting hist.js v=23.
+- 30 d bleibt weiter über den Button wählbar.
+
 ## 2026-11-10 (22) – Standort geändert: Vila Real de Santo Antonio
 
 - pv.json: ort/lat/lon auf Vila Real de Santo Antonio (37.1998, -7.4152,

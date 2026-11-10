@@ -73,7 +73,7 @@ sudo bash install_all.sh /dev/ttyUSB1
 |---|---|---|
 | `/` und `/live` | LIVE (Standard) | 1-s-Aktualisierung: SOC, Leistung, Akku, 8 Zellbalken, Cell-Delta-Gauge, Flags, Today-Verlauf |
 | `/calc` | BERECHNUNGEN | Today: Energy (kWh), Energy flow, Prognosen (Time to full/empty), Battery Levels, Cell-Verlauf (RAW 1s) |
-| `/hist` | HISTORIE | Zeitraum frei wählbar (24 h–1 a, Default 30 d): Verläufe, Energie-Statistik, Zell-Minima, Cell-Delta |
+| `/hist` | HISTORIE | Zeitraum frei wählbar (24 h–1 a, Default 7 d): Verläufe, Energie-Statistik, Zell-Minima, Cell-Delta |
 
 - Technologie: Flask (Port 8090) + Influx-Query-Proxy + Vanilla-JS + uPlot
 - Farben/Thresholds 1:1 aus den ehemaligen Grafana-Dashboards übernommen
@@ -137,7 +137,7 @@ sudo bash install_all.sh /dev/ttyUSB1
 - **Menüleiste** auf jeder Seite: `LIVE | BERECHNUNGEN | HISTORIE | PROGNOSE | WETTER` (aktive Seite hervorgehoben).
 - **LIVE**: aktualisiert jede Sekunde – SOC-Balken (Farbe = Zustand), Leistungen PV/Batterie/Verbrauch, Akku-Spannung/Strom/Temperaturen, 8 Zellspannungen als LED-Balken, Cell-Delta-Gauge (mV) und Monitor-Flags. Unten der Tagesverlauf der Leistungen (1-Min-Mittel) mit Hover-/Touch-Werten.
 - **BERECHNUNGEN**: Energie heute (kWh), Energy-Flow-Chart, Prognosen Time to full/empty (zeigen statt „No data" einen Hinweis, wenn gerade nicht geladen/entladen wird), Battery Levels und Zell-Verlauf (RAW 1 s → Balancing-Ausschläge sichtbar).
-- **HISTORIE**: Zeitraum oben wählen (24 h / 7 d / 30 d / 90 d / 1 a oder Von–Bis-Datum), darunter Verläufe mit Min/Mean/Max-Legende, Energie-Statistik, Zell-Minima und Cell-Delta-Gauge.
+- **HISTORIE**: Zeitraum oben wählen (24 h / 7 d / 30 d / 90 d / 1 a oder Von–Bis-Datum, Standard = 7 d), darunter Verläufe mit Min/Mean/Max-Legende, Energie-Statistik, Zell-Minima und Cell-Delta-Gauge.
 - **Scrollen** per Wischen; die Bildlaufleiste ist im Kiosk bewusst ausgeblendet.
 
 ## Ziel-System

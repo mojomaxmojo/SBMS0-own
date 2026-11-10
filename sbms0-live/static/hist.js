@@ -2,7 +2,7 @@
 'use strict';
 
 /* ---------- Zeitraum-Verwaltung ---------- */
-let range = { startMs: 0, endMs: 0, hours: 720 }; // Default 30 Tage
+let range = { startMs: 0, endMs: 0, hours: 168 }; // Default 7 Tage
 
 function setRangeHours(h) {
   range.hours = h;
@@ -428,7 +428,7 @@ function onRangeChanged() {
 /* ---------- Init ---------- */
 buildHistGauge();
 $('range-info').textContent = rangeInfoText();
-setRangeHours(720); // Default 30 Tage
+setRangeHours(168); // Default 7 Tage
 setInterval(loadAll, 5 * 60000);  // alle 5 min aktualisieren
 
 window.addEventListener('resize', () => {

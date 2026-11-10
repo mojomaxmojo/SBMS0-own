@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-10 (22) – Standort geändert: Vila Real de Santo Antonio
+
+- pv.json: ort/lat/lon auf Vila Real de Santo Antonio (37.1998, -7.4152,
+  ~10 km östlich von Manta Rota). Alte Werte als Text im `_hinweis`-Block.
+- Wirkt auf: Open-Meteo (Wetter/PV), solXcept-Sonnenstand, Stormglass-Tiden
+  (Station wählt automatisch neu), IPMA-Warnfilter (bleibt Faro/Algarve).
+  pv.json wird live gelesen – kein Restart nötig (30-min-Wettercache läuft aus).
+
 ## 2026-11-10 (21) – TEST-Wechsel: dwd_icon → dwd_icon_eu (pv.json)
 
 - `rain_models` jetzt mit `dwd_icon_eu` (6,5 km, in ICON global eingebettet)

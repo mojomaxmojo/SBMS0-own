@@ -55,6 +55,10 @@
     "                       (dmi_seamless entfernt: Zwillings-Datensatz von metno)",
     "                       weitere: knmi_seamless, gfs_seamless, meteofrance_seamless",
     "service:              open-meteo",
+    "STANDORT-BACKUP (bis 2026-11-10):",
+    "                       ort = Manta Rota, Portugal",
+    "                       latitude = 37.16381661361134, longitude = -7.522141757857421",
+    "                       (Neu: Vila Real de Santo Antonio, ~10 km ostwaerts)",
     "tides_api_key:        API-Key fuer worldtides.info (Tiden Hoch/Niedrig als",
     "                       letzte Zeile in den 7-Tage-Kacheln). Kostenlos",
     "                       registrieren auf https://www.worldtides.info/developer",
@@ -62,9 +66,9 @@
     "                       Leer = Tiden-Zeile bleibt einfach weg."
   ],
 
-  "ort": "Manta Rota, Portugal",
-  "latitude": 37.16381661361134,
-  "longitude": -7.522141757857421,
+  "ort": "Vila Real de Santo Antonio, Portugal",
+  "latitude": 37.19979244649201,
+  "longitude": -7.4152369122391635,
   "kwp": 2.25,
   "cells_area": 9.64,
   "cells_efficiency": 22,

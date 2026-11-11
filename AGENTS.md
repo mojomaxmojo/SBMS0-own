@@ -103,7 +103,10 @@ SBMS0 (USB/Serial, 921600 baud)
    `alias: "$col"` loswerden – Transformationen (renameByRegex) greifen nicht überall.
 3. uPlot: alte Charts `destroy()` vor Neuaufbau (sonst DOM-Stapel);
    `dash: [0,10]` zeichnet nichts (Punkte nutzen); Achsenbreite explizit setzen
-   (`size: 70`), sonst wird bei „26.50 V" die führende 2 abgeschnitten.
+    (`size: 70`), sonst wird bei „26.50 V" die führende 2 abgeschnitten.
+    Achsen-Ticks: uPlot-Option heißt `splits` (PLURAL!) – `split` wird
+    stillschweigend ignoriert (Bug 2026-11-11). Ticks exakt an Datenpunkten:
+    `axes[0].splits = (u) => u.data[0]`.
 4. Grafana-Panel-Zeit-Override: modernes Grafana braucht `timeFrom`, der
    legacy-`time`-Block am Panel wirkt nicht.
 5. JS-Queries als **Funktionen** bauen – Template-Literale frieren den Zeitraum

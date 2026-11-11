@@ -164,16 +164,10 @@ function updateChart24(w) {
   const opts = uplotBaseOpts(240,
     (u, vals) => vals.map((v) => Math.round(v)));   // links: km/h
   opts.width = $('wchart').clientWidth;
-  // X-Achse: Ticks EXAKT an den Stunden-Datenpunkten -> immer volle Stunden
-  // (08:00, 09:00 ...). uPlot-Default-Ticks liegen sonst je nach Breite auf
-  // Minutenwerten (z. B. 08:30). ~8 Labels, Abstand gleichmäßig.
-  opts.axes[0].split = (u) => {
-    const ts = u.data[0] || [];
-    const k = Math.max(1, Math.ceil(ts.length / 8));
-    const out = [];
-    for (let i = 0; i < ts.length; i += k) out.push(ts[i]);
-    return out;
-  };
+  // X-Achse: Ticks EXAKT an den Stunden-Datenpunkten -> JEDE Stunde als
+  // volles Stundenlabel (08:00, 09:00, 10:00 ...). uPlot-Default-Ticks liegen
+  // sonst je nach Breite auf Minutenwerten (z. B. 08:30).
+  opts.axes[0].split = (u) => u.data[0] || [];
   opts.axes[0].values = (u, vals) => vals.map((v) =>
     new Date(v).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   opts.legend = { show: true, live: true };

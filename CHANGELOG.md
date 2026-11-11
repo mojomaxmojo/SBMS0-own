@@ -4,6 +4,13 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-11 (25) – WETTER: 24-h-Chart X-Achse JEDE Stunde
+
+- User-Wunsch: nicht alle 3 Stunden, sondern JEDE Stunde als Label
+  (08:00, 09:00, 10:00 ...). `axes[0].split` liefert jetzt alle
+  Datenpunkte (24 Labels) statt einer ~8er-Auswahl.
+- Cache-Busting: weather.js v=37.
+
 ## 2026-11-11 (24) – WETTER: 24-h-Chart X-Achse immer volle Stunden
 
 - `weather.js` `updateChart24()`: X-Achsen-Ticks jetzt direkt an den

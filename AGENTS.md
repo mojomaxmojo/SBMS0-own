@@ -184,6 +184,13 @@ Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
 - Alte Konfidenz-/Spread-Felder (`conf_*`, `spread_*`, `mix_*`, `span_*`, `*_median`,
   "↔ Modelle uneinig"-Zeile, "(unsicher)") wurden ENTFERNT – nicht wieder einführen.
 - Stunden-Mediane: medianOf() über ALLE Modelle (kein HARMONIE-Vorzug mehr).
+- **Median-Diskrepanz Tages- vs. Stunden-Kacheln: BEWUSST SO (User-Entscheidung
+  2026-11-11, nicht ändern!).** Tages-Median = Median der Tages-MAXIMA je Modell
+  (app.py `mdays_g`/`_md3`), Stunden-Median = Median der Modelle je Stunde
+  (weather.js `medianGust`). Weil die Modelle ihr Maximum zu verschiedenen
+  Stunden erreichen, kann der Tages-Median mathematisch NIE als Stunden-Median
+  auftauchen – zusätzlich deckt die 24-h-Anzeige nur 24 h ab aktueller Stunde ab.
+  Kein Bug, keine "Korrektur", keine zusätzliche Anzeige.
 
 - **Tiden (/tides):** **Stormglass** `/v2/tide/extremes/point` (Auth `Authorization`-Header),
   **kostenloser Key in pv.json (`tides_api_key`, dashboard.stormglass.io; Free-Tier 10

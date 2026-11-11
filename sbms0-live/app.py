@@ -549,6 +549,19 @@ def load_alarm_config():
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 
+@app.after_request
+def _no_cache_html(resp):
+    """HTML-Seiten (Templates) NIEMALS cachen – sonst bleibt der Kiosk nach
+    einem Update auf der alten Seite haengen (Script-Tags mit altem ?v=).
+    Statische Dateien (JS/CSS) behalten Browser-Cache + ?v=-Cache-Busting."""
+    if (resp.mimetype == 'text/html'
+            and request.path not in ('/query', '/health')):
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+    return resp
+
+
 @app.route('/')
 def index():
     """Standard-Seite ist LIVE (START-Steuerzentrale wurde entfernt)."""

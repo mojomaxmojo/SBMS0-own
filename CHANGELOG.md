@@ -4,6 +4,18 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-11 (26) – FIX: HTML-Seiten werden nicht mehr gecacht (Kiosk-Update-Problem)
+
+- Ursache für "keine Änderung trotz Update": Chromium-Cache hielt `wetter.html`
+  (und andere Templates) fest -> altes Script-Tag (`?v=35`) wurde weiter
+  geladen, selbst wenn der Server schon v=36/37 auslieferte.
+- `app.py` `@app.after_request`: HTML-Antworten bekommen
+  `Cache-Control: no-cache, no-store, must-revalidate` (+ Pragma/Expires).
+  Statische Dateien (JS/CSS) bleiben gecacht – die laufen über das
+  bewährte `?v=`-Cache-Busting.
+- EINMALIG danach noch hart neu laden (Kiosk-Reboot reicht), danach ist
+  jedes Update sofort nach `git pull` + Restart sichtbar.
+
 ## 2026-11-11 (25) – WETTER: 24-h-Chart X-Achse JEDE Stunde
 
 - User-Wunsch: nicht alle 3 Stunden, sondern JEDE Stunde als Label

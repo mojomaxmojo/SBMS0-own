@@ -4,6 +4,21 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-11 (29) – Prognose-Kalibrierung: Schatten AUS + Diffus 50 % + PR 1.3 + Stunden-Ende-Bewertung
+
+- Befund (Tagesgang 08.–11.11.): Real lag an ALLEN 4 Tagen über Prognose
+  (Faktor ~1,8–3,4), Peaks 565–914 W vs. Prognose-Max 191–596 W →
+  systematisch zu niedrig, nicht Wetter-Timing.
+- **Schatten AUS:** pv.json `shade_percent: 100 → 0` (Baum verschattet real
+  nicht mehr; `shade_*`-Rest bleibt wirkungslos als Memory).
+- **A:** `performance_ratio: 1.0 → 1.3` (Startwert; Feintune über die
+  Ist-vs-Prognose-Tabelle auf PROGNOSE beobachten).
+- **B:** `diffuse_efficiency: 40 → 50` (Broken Clouds / bedeckte Tage).
+- **C:** `solar.py` `hourly_watts()`: Bewertung am Stunden-ENDE statt
+  Stundenmitte (:30) – behebt das ~1 h zu späte Morgen-Starten der
+  Prognose-Kurve (09./11.11.).
+- Restart nötig (solar.py-Änderung); pv.json wirkt live.
+
 ## 2026-11-11 (28) – pv.json: Modul-Daten korrekt eingetragen (5x LONGi Hi-MO 6 Explorer 440 Wp)
 
 - Modulbestand geklärt: 5x LONGi Hi-MO 6 (X6) Explorer LR5-54HTH-440M

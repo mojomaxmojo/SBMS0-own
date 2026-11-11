@@ -208,13 +208,17 @@ def hourly_watts(plant, times_utc_iso, dni, dif, ghi, temp, local_tz_name):
 
     out = []
     for i, t_iso in enumerate(times_utc_iso):
-        # Stunde endet bei t_iso (Open-Meteo-Konvention) -> Energie der VORherigen
+        # Stunde endet bei t_iso (Open-Meteo-Konvention: Wert gilt fuer die
+        # VORherige Stunde). Bewertung am Stunden-ENDE statt -Mitte:
+        # Fix 2026-11-11 - mit Stundenmitte (:30) startete die Prognose
+        # morgens systematisch ~1 h spaeter als Real (Tagesgang 09./11.11.).
+        # End-Bewertung = Sonnenstand zum Label-Zeitpunkt -> Kurve passt zur
+        # echten Uhrzeit (morgens frueher hoeher, abends frueher null).
         try:
             hour_end = _dt.datetime.strptime(t_iso, '%Y-%m-%dT%H:%M').replace(tzinfo=_dt.timezone.utc)
         except ValueError:
             continue
-        mid = hour_end - _dt.timedelta(minutes=30)
-        ts = int(mid.timestamp())
+        ts = int(hour_end.timestamp())
         local = hour_end.astimezone(ltz)
         w = plant.get_power(
             dni[i] or 0, dif[i] or 0, ghi[i] or 0, temp[i] or 0, ts,

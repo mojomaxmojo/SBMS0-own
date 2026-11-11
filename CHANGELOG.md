@@ -4,6 +4,13 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-11 (27) – FIX: 24-h-Chart X-Achse – uPlot-Key heißt "splits", nicht "split"
+
+- Der Fix aus (24)/(25) wirkte nicht: uPlot-Achsen-Option heißt `splits`
+  (Plural). `split` wurde stillschweigend ignoriert -> Default-Ticks
+  (07:50, 09:18 ...) blieben. Jetzt `opts.axes[0].splits = (u) => u.data[0]`.
+- Cache-Busting: weather.js v=38.
+
 ## 2026-11-11 (26) – FIX: HTML-Seiten werden nicht mehr gecacht (Kiosk-Update-Problem)
 
 - Ursache für "keine Änderung trotz Update": Chromium-Cache hielt `wetter.html`

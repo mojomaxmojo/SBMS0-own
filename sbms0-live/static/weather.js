@@ -165,9 +165,10 @@ function updateChart24(w) {
     (u, vals) => vals.map((v) => Math.round(v)));   // links: km/h
   opts.width = $('wchart').clientWidth;
   // X-Achse: Ticks EXAKT an den Stunden-Datenpunkten -> JEDE Stunde als
-  // volles Stundenlabel (08:00, 09:00, 10:00 ...). uPlot-Default-Ticks liegen
-  // sonst je nach Breite auf Minutenwerten (z. B. 08:30).
-  opts.axes[0].split = (u) => u.data[0] || [];
+  // volles Stundenlabel (08:00, 09:00, 10:00 ...). uPlot-Key heißt SPLITS
+  // (Plural!) - mit "split" wird die Option stillschweigend ignoriert
+  // (Bug 2026-11-11: Default-Ticks 07:50/09:18 blieben).
+  opts.axes[0].splits = (u) => u.data[0] || [];
   opts.axes[0].values = (u, vals) => vals.map((v) =>
     new Date(v).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   opts.legend = { show: true, live: true };

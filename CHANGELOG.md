@@ -4,6 +4,14 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-11 (24) – WETTER: 24-h-Chart X-Achse immer volle Stunden
+
+- `weather.js` `updateChart24()`: X-Achsen-Ticks jetzt direkt an den
+  Stunden-Datenpunkten (`axes[0].split` aus `u.data[0]`, ~8 Labels) statt
+  uPlot-Default-Ticks, die je nach Chart-Breite auf Minutenwerten (z. B.
+  08:30) landen konnten. Achse zeigt jetzt immer 08:00, 09:00, 10:00 …
+- Cache-Busting: weather.js v=36.
+
 ## 2026-11-10 (23) – HISTORIE: Standard-Zeitraum 30 d → 7 d
 
 - User-Wunsch: HISTORIE öffnet standardmäßig mit 7 Tagen statt 30 Tagen.

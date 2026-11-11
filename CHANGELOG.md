@@ -4,6 +4,16 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-11 (28) – pv.json: Modul-Daten korrekt eingetragen (5x LONGi Hi-MO 6 Explorer 440 Wp)
+
+- Modulbestand geklärt: 5x LONGi Hi-MO 6 (X6) Explorer LR5-54HTH-440M
+  (440 Wp, 1722×1134 mm = 1,953 m²/Modul, HPBC, ~2 Jahre alt).
+- pv.json: `kwp` 2,25 → **2,2** (5×440 W), `cells_area` 9,64 → **9,76** m²,
+  `temp_coeff` −0,4 → **−0,29 %/K** (Datenblatt), `cells_efficiency` 22,5 % (passte).
+- Degradation ~2 Jahre (1,5 % J1 + 0,4 %/a) ≈ 98 % STC – performance_ratio
+  bleibt 1,0 (Feintune nur bei systematischer Abweichung, siehe Konventionen).
+- Spezifikation im `_hinweis`-Block dokumentiert.
+
 ## 2026-11-11 (27) – FIX: 24-h-Chart X-Achse – uPlot-Key heißt "splits", nicht "split"
 
 - Der Fix aus (24)/(25) wirkte nicht: uPlot-Achsen-Option heißt `splits`

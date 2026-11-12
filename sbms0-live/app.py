@@ -31,6 +31,12 @@ ALARM_PATH = os.path.join(
 PV_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pv.json')
 
+# pv.local.json: MANUELLE Overrides auf der Kiste (durch git pull NICHT
+# ueberschreibbar, in .gitignore). Wird - wenn vorhanden - ueber pv.json
+# gemerged (Schluessel aus pv.local.json gewinnen). Fehlt sie: nur pv.json.
+PV_LOCAL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pv.local.json')
+
 _PV_FALLBACK = {
     'ort': 'Manta Rota, Portugal', 'latitude': 37.16381661361134, 'longitude': -7.522141757857421,
     'kwp': 2.25, 'cells_area': 9.64, 'cells_efficiency': 22,
@@ -50,6 +56,18 @@ def load_json_cfg(path, fallback):
             return json.load(fh)
     except (OSError, ValueError):
         return fallback
+
+
+def load_pv_cfg():
+    """PV-Konfig mit Override-Kette: Defaults -> pv.json (Repo) ->
+    pv.local.json (manuell auf der Kiste, git-sicher). Fehlende Dateien
+    werden ignoriert; kaputte pv.local.json verfaellt auf pv.json."""
+    base = dict(_PV_FALLBACK)
+    base.update(load_json_cfg(PV_PATH, {}))
+    local = load_json_cfg(PV_LOCAL_PATH, {})
+    if isinstance(local, dict) and local:
+        base.update(local)
+    return base
 
 # Einfacher Prozess-Cache fuer die Open-Meteo-Prognose (30 min)
 _FC_CACHE = {'ts': 0, 'data': None}
@@ -96,8 +114,8 @@ def _alerts_dataset():
     (expires >= jetzt). 30-min-Cache; Feed-Fehler -> leer."""
     import time as _time
     import datetime as _dt
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))   # alert_areas aus pv.json
+    cfg = load_pv_cfg()
+    # alert_areas aus pv.json
     now = _time.time()
     if _ALERTS_CACHE['data'] is not None and now - _ALERTS_CACHE['ts'] < ALERTS_TTL:
         return _ALERTS_CACHE['data'], None
@@ -193,8 +211,7 @@ def _weather_dataset():
     if _WEATHER_CACHE['data'] is not None and now - _WEATHER_CACHE['ts'] < WEATHER_TTL:
         return _WEATHER_CACHE['data'], None
 
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     try:
         r = requests.get(
             'https://api.open-meteo.com/v1/forecast',
@@ -596,8 +613,7 @@ def pvcompare():
     import json as _json
     from datetime import datetime, timedelta, timezone
 
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     kwp = float(cfg.get('kwp', 0) or 0)
     pr = float(cfg.get('performance_ratio', 1.0) or 1.0)   # Feintune-Faktor
     tzname = cfg.get('timezone', 'Europe/Lisbon')
@@ -668,8 +684,7 @@ def pvhourly():
     vs. SOC."""
     from datetime import datetime, timedelta, timezone as _tz
 
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     tzname = cfg.get('timezone', 'Europe/Lisbon')
     day = request.args.get('date', '')
     try:
@@ -751,8 +766,7 @@ def rain():
     if _RAIN_CACHE['data'] is not None and now - _RAIN_CACHE['ts'] < 6 * 3600:
         return jsonify(_RAIN_CACHE['data'])
 
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     try:
         tzname = cfg.get('timezone', 'Europe/Lisbon')
         from zoneinfo import ZoneInfo
@@ -832,8 +846,7 @@ def tides():
     if _TIDES_CACHE['data'] is not None and now - _TIDES_CACHE['ts'] < TIDES_TTL:
         return jsonify(_TIDES_CACHE['data'])
 
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     key = str(cfg.get('tides_api_key', '') or '').strip()
     if not key:
         # NICHT cachen: Key kann ja gleich in pv.json eingetragen werden
@@ -896,8 +909,7 @@ def tides():
 @app.route('/pvconfig')
 def pvconfig():
     """Editierbare PV-Prognose-Konfiguration (pv.json)."""
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     return jsonify(cfg)
 
 
@@ -924,8 +936,7 @@ def forecast():
     from datetime import datetime as _dt
 
     now = _time.time()
-    cfg = dict(_PV_FALLBACK)
-    cfg.update(load_json_cfg(PV_PATH, {}))
+    cfg = load_pv_cfg()
     data, err = _weather_dataset()
     if err:
         return jsonify({'error': err}), 502

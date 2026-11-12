@@ -4,6 +4,19 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-12 (30) – pv.local.json: git-sichere manuelle Overrides auf der Kiste
+
+- User-Wunsch: pv.json-Werte auf der Kiste manuell pflegen, OHNE dass
+  `git pull` sie überschreibt.
+- **Neu:** `app.py` `load_pv_cfg()` – Override-Kette Defaults → pv.json (Repo)
+  → `pv.local.json` (Kiste, gitignored). ALLE 8 cfg-Ladestellen (alerts,
+  weather, pvcompare, pvhourly, rain, tides, pvconfig, forecast) nutzen
+  jetzt `load_pv_cfg()`; `/pvconfig` zeigt den gemergten Stand.
+- Vorlage im Repo: `pv.local.json.example` (nach /home/SBMS0/pv.local.json
+  kopieren und anpassen). `.gitignore` um `pv.local.json` ergänzt.
+- pv.json (Repo-Defaults) aktuell: performance_ratio 1.1, shade_percent 100.
+- Restart nötig (app.py-Änderung).
+
 ## 2026-11-11 (29) – Prognose-Kalibrierung: Schatten AUS + Diffus 50 % + PR 1.3 + Stunden-Ende-Bewertung
 
 - Befund (Tagesgang 08.–11.11.): Real lag an ALLEN 4 Tagen über Prognose

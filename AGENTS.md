@@ -92,7 +92,8 @@ SBMS0 (USB/Serial, 921600 baud)
 | `install_liveweb.py` | Installiert/aktualisiert nur Live-Web (+ uPlot-Download) |
 | `sbms0-live/` | Die Web-App (app.py, static/, templates/, Unit) |
 | `sbms0-LiveLogger.py` | Der 1-Hz-Logger |
-| `.gitignore` | uPlot-Dateien, `sbms_fallback_*.csv` (Messdaten), Python-Artefakte |
+| `pv.local.json` | MANUELLE Overrides auf der Kiste (gitignored – `git pull` fasst sie NIE an). Override-Kette: Defaults → pv.json → pv.local.json via `load_pv_cfg()` in app.py (alle Routen). Vorlage: `pv.local.json.example`. User pflegt dort performance_ratio & Co. selbst; live gelesen, kein Restart. |
+| `.gitignore` | uPlot-Dateien, `sbms_fallback_*.csv` (Messdaten), **`pv.local.json`**, Python-Artefakte |
 | `README.md` | Betriebs-Doku (Installation, Kiosk-Details, Performance) |
 | `CHANGELOG.md` | Wichtige Änderungen + Learnings, neueste zuerst |
 

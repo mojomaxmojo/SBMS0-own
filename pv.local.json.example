@@ -1,0 +1,13 @@
+{
+  "_hinweis": [
+    "VORLAGE: Diese Datei nach /home/SBMS0/pv.local.json kopieren und dort",
+    "manuell anpassen. pv.local.json ist in .gitignore und wird von",
+    "'git pull' NIE ueberschrieben oder geloescht.",
+    "",
+    "app.py liest: Defaults -> pv.json (Repo) -> pv.local.json (overrides).",
+    "Nur die Schluessel eintragen, die abweichen sollen - alles andere",
+    "kommt aus pv.json. Werte live gelesen, kein Restart noetig.",
+    "Ungueltiges JSON -> pv.local.json wird ignoriert (pv.json gilt weiter)."
+  ],
+  "performance_ratio": 1.1
+}

@@ -5,6 +5,9 @@ sbms0-live/static/uplot.min.css
 # --- Logger-CSV-Fallback: Messdaten, gehoeren nie ins Repo ---
 sbms_fallback_*.csv
 
+# --- MANUELLE Overrides auf der Kiste (git-sicher, NICHT ins Repo) ---
+pv.local.json
+
 # --- Python ---
 __pycache__/
 *.pyc

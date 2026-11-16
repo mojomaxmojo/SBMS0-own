@@ -4,6 +4,15 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-16 (31) – Standort: Manta Rota, exakte Koordinaten
+
+- pv.json: ort/lat/lon zurück auf **Manta Rota** mit exakten Positionsdaten
+  (37.16328868602158, -7.5231268359306025). VRSA-Koordinaten als Backup im
+  `_hinweis`-Block.
+- Wirkt auf: Open-Meteo (Wetter/PV), solXcept-Sonnenstand, Stormglass-Tiden
+  (Station wählt automatisch neu), IPMA-Warnfilter (bleibt Faro/Algarve).
+  pv.json wird live gelesen – kein Restart nötig (30-min-Wettercache läuft aus).
+
 ## 2026-11-12 (30) – pv.local.json: git-sichere manuelle Overrides auf der Kiste
 
 - User-Wunsch: pv.json-Werte auf der Kiste manuell pflegen, OHNE dass

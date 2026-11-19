@@ -4,6 +4,13 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-19 (37) – Schatten-Sektor geweitet: 225–268° (Bild + Kompass kombiniert)
+
+- Satellitenbild-Analyse (Pin = Module): Baum SW–WSW, Peilung ~230° ±
+  Bildunsicherheit; Kompass-Messung 250° (±10–15° Magnetometer am Mobil).
+- Kompromiss: `shade_azimuth_from/to` 232/268 → **225/268**.
+- Verifikation via Tagesgang (Uhrzeit des Real-Einbruchs) offen.
+
 ## 2026-11-19 (36) – Baum-Azimut korrigiert: ~250° (WSW), Sektor 232–268°
 
 - User-Sichtung: Baum steht etwa bei Azimut 250° (WSW) von den Modulen,

@@ -4,6 +4,18 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-19 (35) – Geometrisches Baum-Schattenmodell (solar.py + pv.json)
+
+- User gab Standort-Pin + Baum-Geometrie: Azimut-Sektor 150–215° (SSO–SSW),
+  Baumhöhe 8 m, Abstand 15 m → Winkelhöhe atan(8/15) ≈ 28,1°.
+- `solar.py` `_shade_factor()` Modus 0 (neu, hat Vorrang): Schatten, wenn
+  Sonnenazimut im Sektor UND Sonnenhöhe < Baum-Winkelhöhe. Jahreszeiten-
+  abhängig automatisch korrekt (Winter tiefer = mehr Schatten, Sommer ~0).
+  Modi 1–3 (Uhrzeit/Sonnenhöhe) bleiben als Fallback.
+- pv.json: `shade_azimuth_from: 150`, `shade_azimuth_to: 215`,
+  `tree_height_m: 8`, `tree_distance_m: 15` (+ _hinweis-Doku).
+- Restart nötig (solar.py).
+
 ## 2026-11-19 (34) – FIX: Tabellen-Header über den Werten (Ausrichtung)
 
 - Symptom (PROGNOSE Ist-vs-Prognose): Werte standen optisch unter dem

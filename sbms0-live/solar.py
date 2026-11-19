@@ -104,20 +104,45 @@ class Plant:
         # Anteil Diffusstrahlung, der DURCH die Verschattung kommt (Baum:
         # Sonnenscheibe voll blockt, Diffus kommt teils durchs Laubdach)
         self.shade_diffuse_frac = float(cfg.get('shade_diffuse_pct', 50) or 50) / 100.0
+        # Geometrisches Baum-Schattenmodell (2026-11-19): Schatten, wenn die
+        # Sonne im Azimut-Sektor des Baums steht UND unter dessen Winkelhoehe
+        # (atan(Hoehe/Abstand)). Jahreszeiten automatically korrekt.
+        self.tree_height = float(cfg.get('tree_height_m', 0) or 0)          # m
+        self.tree_dist = float(cfg.get('tree_distance_m', 0) or 0)         # m
+        self.shade_az_from = cfg.get('shade_azimuth_from', None)            # Grad
+        self.shade_az_to = cfg.get('shade_azimuth_to', None)                # Grad
         self.timezone_name = cfg.get('timezone', 'Europe/Lisbon')
 
-    def _shade_factor(self, elevation_deg, local_hhmm):
-        """Verschattung, drei Modi:
+    def _shade_factor(self, elevation_deg, azimuth_deg, local_hhmm):
+        """Verschattung, vier Modi:
+        0. Geometrischer Baum (tree_height_m + tree_distance_m + Azimut-Sektor):
+           Schatten nur, wenn Sonne IM Sektor des Baums steht UND unter dessen
+           Winkelhoehe atan(Hoehe/Abstand). Voll automatisch jahreszeitlich
+           korrekt (2026-11-19, ersetzt Uhrzeit-Schaetzung).
         1. NUR shade_below_elevation  -> zeitsymmetrisch (morgens UND abends)
         2. NUR shade_from (HH:MM)     -> rein zeitbasiert ab dieser Uhrzeit
         3. BEIDE gesetzt              -> Verschattung nur ab Uhrzeit UND
            Sonnenhoehe unter der Grenze. Fuer Nachmittagsschatten (z. B. Baum),
-           der morgens nicht existiert: Sonne morgens unangetastet.
-        (Modus 3 seit 2026-11-10 – vorher blockte shade_below auch morgens,
-         obwohl die Anlage real produzierte: Tagesgang-Beweis 09.11.)"""
+           der morgens nicht existiert: Sonne morgens unangetastet."""
         if self.shade_percent <= 0:
             return 1.0
         blocked = 1.0 - self.shade_percent / 100.0
+
+        # Modus 0: Geometrie (Baum) - hat Vorrang, wenn Parameter gesetzt
+        if self.tree_height > 0 and self.tree_dist > 0 \
+                and self.shade_az_from is not None and self.shade_az_to is not None:
+            try:
+                az_from = float(self.shade_az_from)
+                az_to = float(self.shade_az_to)
+                tree_elev = math.degrees(math.atan2(self.tree_height, self.tree_dist))
+                az = azimuth_deg % 360.0
+                if az_from <= az_to:
+                    in_sector = az_from <= az <= az_to
+                else:  # Sektor ueber 360 (z. B. 350..10)
+                    in_sector = az >= az_from or az <= az_to
+                return blocked if (in_sector and elevation_deg < tree_elev) else 1.0
+            except (TypeError, ValueError):
+                return 1.0
 
         if self.shade_below > 0 and self.shade_from:
             # Kombiniert: Uhrzeit-Fenster + Sonnenhoehe
@@ -163,7 +188,7 @@ class Plant:
         if dni > 0:
             dot = sum(sun[j] * normal[j] for j in range(3))
             efficiency = max(0.0, dot)
-        shade = self._shade_factor(elevation, local_hhmm)
+        shade = self._shade_factor(elevation, azimuth, local_hhmm)
 
         # Verschattung (Baum): Direktstrahlung voll betroffen (shade_percent),
         # Diffusstrahlung kommt anteilig durch (shade_diffuse_pct).

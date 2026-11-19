@@ -4,6 +4,16 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-19 (34) – FIX: Tabellen-Header über den Werten (Ausrichtung)
+
+- Symptom (PROGNOSE Ist-vs-Prognose): Werte standen optisch unter dem
+  falschen Header – Header waren linksbündig, Werte rechtsbündig in
+  breiten Spalten.
+- Fix (style.css, global für alle legend-Tabellen): Header aller
+  Wert-Spalten rechtsbündig (`th:not(:first-child) { text-align: right }`),
+  sitzen damit exakt über den Zahlen. Tag-Spalte bleibt links.
+- Cache-Busting: style.css v=31 (alle 5 Templates).
+
 ## 2026-11-19 (33) – FIX: PROGNOSE Tages-Balken – Datum-Labels unter den Balken
 
 - Symptom: Datums-Labels (Do., 19.11. …) hingen ZWISCHEN den Balken –

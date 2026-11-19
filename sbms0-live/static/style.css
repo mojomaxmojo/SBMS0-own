@@ -220,6 +220,10 @@ body.calc #batt-panel, body.calc #cells-verlauf-panel { grid-column: span 24; }
   padding: 4px 6px;
   border-bottom: 1px solid var(--panel-border);
 }
+/* Wert-Spalten: Header RECHTSBÜNDIG über den (rechtsbündigen) Werten -
+   sonst stehen bei breiten Spalten die Zahlen optisch unter dem falschen
+   Header (Fix 2026-11-19, PROGNOSE Ist-vs-Prognose). */
+.legend-table th:not(:first-child) { text-align: right; }
 .legend-table th:last-child, .legend-table td:last-child { text-align: right; }
 .legend-table td {
   color: var(--txt);

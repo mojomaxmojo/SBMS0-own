@@ -4,6 +4,16 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-19 (32) – FIX: PROGNOSE PR-Vorschlag durch alten 0.95-Cap verstümmelt
+
+- Symptom: „Abweichung +7 % → neuer Wert: 0.95" – absurd, weil Real ÜBER
+  Prognose lag (PR müsste STEIGEN).
+- Ursache: `prog.js` klemmte den Vorschlag mit `Math.min(0.95, ...)`
+  (Überbleibsel aus der Grafana-Ära, als PR < 1 normal war).
+- Fix: realistische Grenzen `0.2 – 3.0`. Vorschlag jetzt = pr × (1 + Abw./100),
+  z. B. 1.00 → 1.07.
+- Cache-Busting: prog.js v=17.
+
 ## 2026-11-16 (31) – Standort: Manta Rota, exakte Koordinaten
 
 - pv.json: ort/lat/lon zurück auf **Manta Rota** mit exakten Positionsdaten

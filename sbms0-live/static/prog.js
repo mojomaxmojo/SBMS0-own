@@ -142,7 +142,10 @@ async function load() {
       const dev = (sumR - sumF) / sumF * 100;   // % Abweichung (real vs. prognose)
       const color = dev >= 0 ? 'var(--green)' : 'var(--red)';
       const prNew = cmp.pr * (1 + dev / 100);
-      const prNewStr = Math.max(0.1, Math.min(0.95, prNew)).toFixed(2);
+      // Grenzen realistisch: 0.2 – 3.0 (alter Cap 0.95 war ein Grafana-Era-
+      // Ueberbleibsel und kappte aufsteigende Vorschlaege sinnlos, z. B.
+      // 1.07 -> 0.95). Beispiel-Fix 2026-11-19.
+      const prNewStr = Math.max(0.2, Math.min(3.0, prNew)).toFixed(2);
       const tip = Math.abs(dev) < 5
         ? 'passt'
         : `neuer Wert: ${prNewStr}`;

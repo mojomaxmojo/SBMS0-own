@@ -4,6 +4,16 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-19 (33) – FIX: PROGNOSE Tages-Balken – Datum-Labels unter den Balken
+
+- Symptom: Datums-Labels (Do., 19.11. …) hingen ZWISCHEN den Balken –
+  uPlot-Default-Ticks liegen auf Mitternachtswerten, die Balken auf
+  12:00 (Tagesmitte).
+- Fix (wie weather-Chart am 11.11.): `axes[0].splits = u.data[0]` – Ticks
+  exakt an den Balken-Positionen, in beiden Charts (Tages-Ertraege +
+  Rueckblick 7 Tage).
+- Cache-Busting: prog.js v=18.
+
 ## 2026-11-19 (32) – FIX: PROGNOSE PR-Vorschlag durch alten 0.95-Cap verstümmelt
 
 - Symptom: „Abweichung +7 % → neuer Wert: 0.95" – absurd, weil Real ÜBER

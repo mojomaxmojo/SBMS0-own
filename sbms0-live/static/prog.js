@@ -58,8 +58,11 @@ async function load() {
     ];
     dayOpts.axes = [
       { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-        values: (u, vals) => dedupeDayLabels(vals,
-          (d) => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
+        // Ticks EXAKT an den Balken-Positionen (12:00 je Tag) - sonst landen
+        // uPlot-Default-Ticks auf Mitternachtswerten UNTER ZWISCHEN den Balken.
+        splits: (u) => u.data[0] || [],
+        values: (u, vals) => vals.map((v) =>
+          new Date(v).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
       { scale: 'kwhd', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
         values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
     ];
@@ -219,8 +222,10 @@ async function loadPast(cmp, pr) {
   ];
   opts.axes = [
     { stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' },
-      values: (u, vals) => dedupeDayLabels(vals,
-        (d) => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
+      // Ticks exakt an den Balken-Positionen (siehe Tages-Ertraege-Chart oben)
+      splits: (u) => u.data[0] || [],
+      values: (u, vals) => vals.map((v) =>
+        new Date(v).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })) },
     { scale: 'kwhd', stroke: '#8e8e8e', grid: { stroke: '#2c3235' }, ticks: { stroke: '#2c3235' }, side: 3, size: 55,
       values: (u, vals) => vals.map((v) => Number(v).toFixed(0)) },
   ];

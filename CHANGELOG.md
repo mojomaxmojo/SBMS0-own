@@ -4,6 +4,16 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-19 (36) – Baum-Azimut korrigiert: ~250° (WSW), Sektor 232–268°
+
+- User-Sichtung: Baum steht etwa bei Azimut 250° (WSW) von den Modulen,
+  nicht SSO-SSW wie anfangs geschaetzt.
+- pv.json: `shade_azimuth_from/to` 150/215 → **232/268** (Krone ~10–12 m auf
+  15 m Entfernung ≈ ±18° um 250°).
+- Physik: Schattenfenster jetzt Nachmittag (~14:30–16:30 im November, wenn
+  Sonne bei Az ~250° unter die 28,1°-Baumwinkelhöhe sinkt). Vormittag/Mittag
+  frei.
+
 ## 2026-11-19 (35) – Geometrisches Baum-Schattenmodell (solar.py + pv.json)
 
 - User gab Standort-Pin + Baum-Geometrie: Azimut-Sektor 150–215° (SSO–SSW),

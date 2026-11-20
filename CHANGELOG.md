@@ -4,6 +4,18 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-20 (39) – Schatten: saisonale Automatik (Geometrie reaktiviert + kalibriert)
+
+- Gegenrechnung bestätigt: Geometrie (232–268°, 28,1°) ergab Schatten erst
+  ~15:50 – User-Beobachtung ist 15:30. Differenz = Sektor-Grenze ~5°.
+- pv.json: `shade_azimuth_from` 232 → **227** (kalibriert: Sonne steht am
+  20.11. um 15:30 bei Az ~227° / Höhe ~17°) und `tree_height_m` 8 →
+  Geometrie reaktiviert. Korrektur meiner früheren Fehlschätzung
+  „Schatten ab 14:30" (Solar-Mittag falsch gerechnet: korrekt ~12:16).
+- Verhalten: Schatten ~15:30 bis Sonnenuntergang (Winter); Sommer: Sonne
+  >28° hinter der Krone → automatisch kein Schatten.
+- shade_percent 50 / diffuse 50 (Krone 50 % durchlässig) bleiben.
+
 ## 2026-11-20 (38) – Schatten-Modell: reine Uhrzeit 15:30 + Krone 50 % durchlässig
 
 - User-Beobachtung ersetzt die geometrische Schätzung: Schatten beginnt

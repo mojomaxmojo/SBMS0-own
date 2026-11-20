@@ -108,6 +108,15 @@ SBMS0 (USB/Serial, 921600 baud)
     Achsen-Ticks: uPlot-Option heißt `splits` (PLURAL!) – `split` wird
     stillschweigend ignoriert (Bug 2026-11-11). Ticks exakt an Datenpunkten:
     `axes[0].splits = (u) => u.data[0]`.
+    Benötigt für: volle Stunden im 24-h-Wetter-Chart UND Datum-Labels
+    unter den Balken auf PROGNOSE (Balken 12:00, Default-Ticks Mitternacht
+    → Labels hingen zwischen den Balken, Fix 19.11.).
+4b. Tabellen (`legend-table`): Header links, Werte rechtsbündig → Header
+    der Wert-Spalten rechtsbündig (`th:not(:first-child) { text-align: right }`),
+    sonst stehen Zahlen optisch unter dem falschen Header (Fix 19.11.).
+4c. HTML-Templates: `after_request` setzt no-cache – sonst bleibt der Kiosk
+    nach Updates auf alter HTML mit altem `?v=` hängen (Fix 19.11.).
+    JS/CSS über `?v=`-Busting, Versionsnummer in ALLEN Templates identisch.
 4. Grafana-Panel-Zeit-Override: modernes Grafana braucht `timeFrom`, der
    legacy-`time`-Block am Panel wirkt nicht.
 5. JS-Queries als **Funktionen** bauen – Template-Literale frieren den Zeitraum
@@ -150,13 +159,31 @@ SBMS0 (USB/Serial, 921600 baud)
 - Nächtlicher Reboot-Cron für Kiosk (RAM-Optimierung, optional).
 - `raw_1s`-Retention 365d → 60d (optional, Verläufe laufen über `downsampled_1m`).
 
-## Session-Kontext (Stand 2026-11-09, Handover für Folge-Sessions)
+## Session-Kontext (Stand 2026-11-20, Handover für Folge-Sessions)
 
 ### System
 - Batterie 280 Ah / 24 V (8s LiFePO4, ~6,7 kWh) — **Wohnmobil-Anlage, mobil!**
-  (PV 2250 Wp, Flachdach 0°, 9,64 m² / 22 %, nur PV1, WR 3500 W / 90 %;
-  nachmittags verschattet → shade_below_elevation=12°; Saharastaub → Waschregen ≥5 mm reinigt)
-- Standort Manta Rota, Portugal (37.16381661361134, -7.522141757857421), TZ Europe/Lisbon
+  PV: **5x LONGi Hi-MO 6 (X6) Explorer LR5-54HTH-440M = 2,2 kWp**, 9,76 m²,
+  η 22,5 %, temp_coeff −0,29 %/K (HPBC), ~2 Jahre alt; Flachdach 0°/Süd,
+  WR 3500 W / 90 %.
+- **pv.local.json (seit 2026-11-12):** manuelle Overrides des Users auf der
+  Kiste, gitignored – `git pull` fasst sie NIE an. Override-Kette:
+  Defaults → pv.json → pv.local.json (`load_pv_cfg()` in app.py, alle
+  cfg-Ladestellen). User pflegt dort PR & Co. selbst. Vorlage:
+  `pv.local.json.example`. WICHTIG: User-Overrides überschreiben Repo-Werte
+  (Falle: PR stand lokal auf 1.0, Repo sagte 1.1 → nur.irre führen).
+- **Kalibrierung (Stand 20.11.):** PR 1,1; diffuse_efficiency 50 %;
+  Befund 08.–11.11.: Real lag 4 Tage in Folge über Prognose (F1,8–3,4×)
+  → systematisch, nicht Wetter-Timing.
+- **Schattenmodell: geometrisch (saisonal automatisch), kalibriert:**
+  Baum bei Az ~250° (Kompass) / ~230° (Satellitenbild) → Sektor 227–268°;
+  8 m / 15 m → Winkelhöhe 28,1°; Krone 50 % durchlässig (shade_percent 50,
+  shade_diffuse_pct 50). Kalibriert an User-Beobachtung „Schatten ab 15:30"
+  (20.11.). Wichtig: Schattenfenster im Winter = ~15:30 bis Sonnenuntergang
+  (Sonne geht bei Az ~245° unter – erreicht 268° nie!). Deaktivierung:
+  tree_height_m 0 → Zeitmodell (shade_from).
+- Standort Manta Rota, Portugal (37.16328868602158, -7.5231268359306025),
+  TZ Europe/Lisbon. Mobil → Standort/Geometrie ändern sich mit Stellplatz.
 - Seiten (8090): `/` = LIVE (Standard!) · BERECHNUNGEN · HISTORIE · PROGNOSE · WETTER.
   START-Steuerzentrale wurde 2026-11-10 entfernt (User-Wunsch) – nicht wieder anlegen.
   Auto-Return: shared.js schaltet nach 5 min Inaktivität zurück auf /live.
@@ -203,19 +230,24 @@ Min/Max abgedunkelt). Der Nutzer interpretiert die Spanne selbst.
   liefert Tiden – Stormglass ist die einzige Quelle, nichts daran "optimieren".
   worldtides.info war vorher drin, ist aber NICHT frei (3,99 $/Jahr) – nicht zurückwechseln.
 
-### Kalibrierungs-Status
-- Kalibrierungs-Status: performance_ratio = 1,0; diffuse_efficiency = 40 %.
-- **Schatten-Logik (seit 2026-11-10, Modus 3 + Direkt/Diffus-Split):** `shade_below_elevation`
-  + `shade_from` gesetzt → Schatten nur ab Uhrzeit UND unter Sonnenhöhe.
-  `shade_percent` (100) wirkt NUR auf Direktstrahlung; Diffus kommt anteilig durch
-  (`shade_diffuse_pct` in pv.json, Default 50 – Baum/Laub). Schatten-Faktor wird
-  NICHT mehr global auf die Gesamt-Einstrahlung multipliziert!
+### Kalibrierungs-Status (Stand 2026-11-20)
+- Kalibrierung: performance_ratio = **1,1**; diffuse_efficiency = **50 %**;
+  (Befund 08.–11.11.: Real 4 Tage in Folge über Prognose, Faktor 1,8–3,4
+  → systematisch zu niedrig). Ab 19.11. wird der PR-Vorschlag der
+  PROGNOSE-Tabelle korrekt berechnet (alter 0,95-Cap entfernt).
+- **Schatten-Logik (seit 19./20.11., Modus 0 = GEOMETRIE, hat Vorrang):**
+  Baum blockt Sonne nur bei Azimut im Sektor 227–268° UND Sonnenhöhe <
+  atan(8/15) = 28,1°. Kalibriert an User-Beobachtung „Schatten ab 15:30"
+  (20.11.). Krone 50 % durchlässig (shade_percent 50, diffuse_pct 50).
+  Schatten-Faktor wirkt NUR auf Direktstrahlung; Diffus kommt anteilig
+  durch. `shade_from`/`shade_below_elevation` sind damit inaktiv (Fallback).
+- Sonne unter 227°/268°-Rand: November-Sonnenuntergang bei Az ~245° →
+  Sektor-Ende 268° wird im Winter nie erreicht (Schatten bis Sonnenuntergang).
 - Energie-Bilanz-Check bestätigt Messkette (Differenz ~5 % = Ladeverluste);
   Sommer-Peak ~1.700 W = Physik-Deckel flach+heiß, KEIN Messfehler.
 - Tage mit SOC ~90 %+ zeigen "Real < Prognose" = CORRECT (SBMS0-Curtailment, nicht kalibrieren!)
-- Ausstehend: Ist-vs-Prognose nach Sturm 11.11. final prüfen; 💧-Reset durch
-  Waschregen testen. Befund 09.11.: Prognose zu NIEDRIG (Sturmwolken-Timing der
-  Modelle) – Wetter-Timing schwankt täglich, NICHT per PR kalibrieren!
+- Ausstehend: Tagesgang-Verifikation des Schattenmodells am nächsten klaren
+  Tag (Einbruch-Zeit Prognose vs. Real); 💧-Reset durch Waschregen testen.
 
 ### Eherne Bugs (nicht neu erfinden!)
 - weather.js: nach großen Umbauten auf doppelte const-Deklarationen prüfen (2× "const hours"

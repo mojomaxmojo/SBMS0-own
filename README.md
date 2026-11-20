@@ -7,6 +7,7 @@ Automation & Monitoring für Electrodacus SBMS0 Komponenten.
 | Komponente | Wert |
 |---|---|
 | **Batterie** | **280 Ah / 24 V** (8s LiFePO4, ~6,72 kWh) |
+| **PV** | 2,2 kWp (5× LONGi Hi-MO 6 Explorer 440 Wp), Flachdach 0°/Süd, Wohnmobil (mobil) |
 | Logger | `sbms0-LiveLogger.py` – 1 Datapoint/Sekunde → InfluxDB 1.8 (+ eigene 1-Min-Mittelwerte) |
 | Datenbank | InfluxDB, DB `SBMS`, RP `raw_1s` (365d, DEFAULT) + `downsampled_1m` (365d) |
 | Visualisierung | **SBMS0 Live-Web** (Port 8090) – ohne Grafana |
@@ -74,9 +75,15 @@ sudo bash install_all.sh /dev/ttyUSB1
 | `/` und `/live` | LIVE (Standard) | 1-s-Aktualisierung: SOC, Leistung, Akku, 8 Zellbalken, Cell-Delta-Gauge, Flags, Today-Verlauf |
 | `/calc` | BERECHNUNGEN | Today: Energy (kWh), Energy flow, Prognosen (Time to full/empty), Battery Levels, Cell-Verlauf (RAW 1s) |
 | `/hist` | HISTORIE | Zeitraum frei wählbar (24 h–1 a, Default 7 d): Verläufe, Energie-Statistik, Zell-Minima, Cell-Delta |
+| `/prognose` | PROGNOSE | PV-Ertrag 7 Tage (solXcept-Modell) vs. Real (InfluxDB), Ist-vs-Prognose-Tabelle mit PR-Vorschlag, Tagesgang-Analyse, Modul-Reinigungs-Hinweis |
+| `/wetter` | WETTER | 24 h Stunden-Kacheln + Median-Chart, 7-Tage-Kacheln (Min–Median–Max über 4 Modelle), Unwetter-Warnungen (Median), offizielle IPMA/MeteoAlarm-Warnungen, Tiden (Stormglass) |
 
 - Technologie: Flask (Port 8090) + Influx-Query-Proxy + Vanilla-JS + uPlot
 - Farben/Thresholds 1:1 aus den ehemaligen Grafana-Dashboards übernommen
+- **HTML-Templates werden nie gecacht** (`Cache-Control: no-cache` via
+  `after_request`) → Updates sind nach `git pull` + Restart sofort sichtbar;
+  JS/CSS laufen über `?v=`-Cache-Busting (Versionsnummern in allen Templates
+  identisch halten!)
 - **Update der App:**
   ```bash
   cd /home/SBMS0 && git pull && sudo python3 install_liveweb.py
@@ -114,6 +121,31 @@ sudo bash install_all.sh /dev/ttyUSB1
 - Time to full: `280 × (100 − SOC)/100 ÷ Ladestrom(A) × 60` → Minuten
 - Time to empty: `280 × SOC/100 ÷ Entladestrom(A) × 60` → Minuten
 - Kapazität **280 Ah** ist in den Time-to-Queries hart hinterlegt (6 Stellen).
+
+## PV-Prognose & Konfiguration (pv.json / pv.local.json)
+
+- **Modul:** 5× LONGi Hi-MO 6 (X6) Explorer LR5-54HTH-440M → 2,2 kWp,
+  9,76 m², η 22,5 %, temp_coeff −0,29 %/K (HPBC), ~2 Jahre alt.
+- **Anlage:** Flachdach 0° / 180° (Süd), WR 3500 W / 90 %, Wohnmobil-Anlage
+  (**mobil** – Standort in pv.json je Stellplatz anpassen).
+- **pv.json** = Repo-Defaults (Standort, Modul, Schatten, Warn-Schwellen,
+  rain_models, Stormglass-Key). Wird live gelesen, kein Restart nötig.
+- **pv.local.json** = manuelle Overrides auf der Kiste (gitignored → wird
+  von `git pull` nie überschrieben). Override-Kette: Defaults → pv.json →
+  pv.local.json (`load_pv_cfg()`). Nur abweichende Schlüssel eintragen.
+  Vorlage: `pv.local.json.example`.
+- **Schattenmodell (geometrisch, saisonal automatisch):** Baum blockt die
+  Sonne nur, wenn sie im Azimut-Sektor (`shade_azimuth_from/to`) steht UND
+  unter der Winkelhöhe `atan(tree_height_m / tree_distance_m)` steht.
+  Kalibriert (20.11.): Sektor 227–268°, 8 m / 15 m → Schatten ab ~15:30 im
+  Winter, im Sommer automatisch kein Schatten. `shade_percent 50` /
+  `shade_diffuse_pct 50` = Krone 50 % durchlässig. Deaktivieren:
+  `tree_height_m: 0` → dann gilt reine Uhrzeit (`shade_from`).
+- **Kalibrier-Historie:** PR 1,0 → 1,1; `diffuse_efficiency` 40 → 50 %
+  (Befund 08.–11.11.: Real lag systematisch über Prognose).
+- **PR-Vorschlag** auf PROGNOSE („Summe 7 Tage"): `neuer PR = PR ×
+  (1 + Abweichung/100)`; nur bei konsistenter Abweichung über mehrere Tage
+  anpassen, nicht jedem Wetter hinterher.
 
 ## Kiosk-Details (DietPi / Dell Wyse 3040 Touchscreen)
 

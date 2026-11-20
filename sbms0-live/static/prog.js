@@ -129,16 +129,24 @@ async function load() {
     if (!cmp) throw new Error('Vergleichsdaten fehlen');
     if (cmp.error) throw new Error(cmp.error);
     $('cmp-hint').textContent = `PR ${cmp.pr.toFixed(2)} · Zeitzone ${cmp.timezone}`;
+    // Heutiges Datum (lokal, JJJJ-MM-TT) - heute bleibt in der Tabelle sichtbar
+    // (mit "(bisher)"), wird aber NICHT in die Summe einbezogen: die
+    // Tagesprognose ist ganztaegig, Real heute erst teilweise -> Summe
+    // waere sonst systematisch verzerrt (Fix 2026-11-20).
+    const nowD = new Date();
+    const todayStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
     let html = '<table class="legend-table"><tr><th>Tag</th><th>Prognose</th><th>Real (Influx)</th><th>Abw.</th></tr>';
     let sumF = 0, sumR = 0, n = 0;
     for (const d of cmp.days) {
       const dt = new Date(d.date + 'T12:00:00');
-      const label = dt.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+      const label = dt.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) +
+        (d.date === todayStr ? ' (bisher)' : '');
       const real = d.real == null ? '–' : d.real.toFixed(2) + ' kWh';
       const diff = d.diff_pct == null ? '–'
         : `<span style="color:${d.diff_pct >= 0 ? 'var(--green)' : 'var(--red)'}">${d.diff_pct > 0 ? '+' : ''}${d.diff_pct}%</span>`;
       html += `<tr><td>${label}</td><td>${d.forecast.toFixed(2)} kWh</td><td>${real}</td><td>${diff}</td></tr>`;
-      if (d.real != null) { sumF += d.forecast; sumR += d.real; n++; }
+      // Nur VOLL verfuegbare (vergangene) Tage in die Summe - heute nicht
+      if (d.date < todayStr && d.real != null) { sumF += d.forecast; sumR += d.real; n++; }
     }
     html += '</table>';
     if (n > 0) {
@@ -204,7 +212,11 @@ function drawBarPairs(u, colors) {
 }
 
 async function loadPast(cmp, pr) {
-  const days = (cmp.days || []).slice(-8);
+  // Nur VOLL verfuegbare Tage (ohne heute, dessen Real nur teilweise
+  // existiert) - gleiche Logik wie die Summe in der Tabelle oben.
+  const nowD = new Date();
+  const todayStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+  const days = (cmp.days || []).filter((d) => d.date < todayStr).slice(-7);
   const times = days.map((d) => new Date(d.date + 'T12:00:00').getTime());
   const fcV = days.map((d) => Number(d.forecast));
   const reV = days.map((d) => d.real == null ? null : Number(d.real));

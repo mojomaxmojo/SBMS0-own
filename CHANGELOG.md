@@ -4,6 +4,19 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-20 (40) – FIX: „Summe 7 Tage" = echte letzten 7 Tage (ohne heute)
+
+- Befund: Die Summe in der Ist-vs-Prognose-Zeile bezog den LAUFENDEN Tag
+  ein (bis zu 8 Tage): Tagesprognose ganz vs. Real nur teilweise →
+  systematische Verzerrung (morgens stark negativ, abends ausglichen).
+- Fix (prog.js):
+  - Summe nur über vergangene Tage (`d.date < heute`) → echte „Summe
+    7 Tage"; PR-Vorschlag daraus korrekt.
+  - Tabelle: heutige Zeile bleibt sichtbar, mit „(bisher)" markiert.
+  - Rückblick-Chart unten: heutiger Tag (teil-Real) wird nicht mehr
+    gezeichnet (nur volle Tage).
+- Cache-Busting: prog.js v=19.
+
 ## 2026-11-20 (39) – Schatten: saisonale Automatik (Geometrie reaktiviert + kalibriert)
 
 - Gegenrechnung bestätigt: Geometrie (232–268°, 28,1°) ergab Schatten erst

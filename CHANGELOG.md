@@ -4,6 +4,19 @@ Wichtige Änderungen am SBMS0-Stack (aktives Repo `mojomaxmojo/SBMS0-own`;
 Vorgänger war `mojomaxmojo/SBMS0-test`).
 Vollständige Commit-Historie: `git log --oneline`.
 
+## 2026-11-20 (38) – Schatten-Modell: reine Uhrzeit 15:30 + Krone 50 % durchlässig
+
+- User-Beobachtung ersetzt die geometrische Schätzung: Schatten beginnt
+  real **ab 15:30**, Krone ist **50 % durchlässig**.
+- pv.json: `shade_percent` 100 → **50**, `shade_from` 12:00 → **15:30**,
+  `shade_below_elevation` 12 → **0** (NUR Uhrzeit zählt), `tree_height_m`
+  8 → **0** (Geometrie-Modus deaktiviert; Reaktivierung durch
+  tree_height_m > 0, Parameter bleiben dokumentiert).
+- `shade_diffuse_pct` bleibt 50 (Diffus kommt halb durch die Krone).
+- Hinweis: Uhrzeit-Modell ist saisonal starr – im Sommer schattet die
+  Baumgeometrie real nicht (Sonne hoch hinter der Krone). Wenn relevant:
+  Geometrie reaktivieren oder shade_from saisonal anpassen.
+
 ## 2026-11-19 (37) – Schatten-Sektor geweitet: 225–268° (Bild + Kompass kombiniert)
 
 - Satellitenbild-Analyse (Pin = Module): Baum SW–WSW, Peilung ~230° ±
